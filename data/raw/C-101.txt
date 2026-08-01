@@ -1,0 +1,18 @@
+Contract ID: C-101
+Title: QuickHire Staffing Agreement
+Parties: Northstar Solutions Ltd. and QuickHire Staffing Ltd.
+
+1. PAYMENT TERMS
+Undisputed invoices are due within 45 calendar days of receipt. A late fee of 2% per month applies to overdue balances.
+
+2. TERMINATION
+Either party may end this Agreement for convenience with 20 days written notice. If either party breaches the Agreement, the breaching party has 5 business days to correct the issue before the other party may terminate.
+
+3. AUTOMATIC RENEWAL
+This Agreement renews automatically for successive 6-month periods unless the Customer gives 45 days written notice before the renewal date.
+
+4. LIMITATION OF LIABILITY
+Each party's liability for ordinary claims is capped at the fees paid in the preceding 12 months. This cap does not apply to breaches of confidentiality or to fraud.
+
+Dataset Note:
+This excerpt does not include a data protection or intellectual property clause.

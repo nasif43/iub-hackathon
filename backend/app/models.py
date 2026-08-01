@@ -33,6 +33,7 @@ class ReviewStatus(str, Enum):
 class ReviewSource(str, Enum):
     rule_engine = "rule_engine"
     rule_engine_llm = "rule_engine+llm"
+    rule_engine_llm_extraction = "rule_engine+llm_extraction"
 
 class ContractSummary(BaseModel):
     id: str
@@ -90,4 +91,3 @@ class StandardCreate(BaseModel):
     id: str
     category: str
     text: str
-

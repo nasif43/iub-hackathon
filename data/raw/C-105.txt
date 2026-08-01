@@ -1,0 +1,21 @@
+Contract ID: C-105
+Title: Meridian Cloud Hosting Agreement
+Parties: Northstar Solutions Ltd. and Meridian Hosting Ltd.
+
+2.1 Payment
+The Customer must settle undisputed invoices within 4 weeks of receipt.
+
+4.1 Termination
+Either party may terminate for convenience by giving 6 weeks written notice. A party in breach has 2 business weeks to cure the breach before termination.
+
+5.1 Automatic Renewal
+The Agreement renews automatically for a further 2 years unless the Customer gives 6 weeks written notice before the renewal date.
+
+7.1 Data Protection
+Personal data is encrypted in transit only. Confirmed breaches are reported within 2 business days. Subprocessors may be appointed without prior approval. Data is deleted or returned within one quarter after the service ends.
+
+9.1 Limitation of Liability
+Meridian's total liability for ordinary claims is capped at fees paid during the previous 2 quarters. No carve-outs are stated.
+
+Dataset Note:
+This excerpt does not include a confidentiality or intellectual property clause.

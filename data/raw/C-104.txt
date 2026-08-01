@@ -1,0 +1,24 @@
+Contract ID: C-104
+Title: Harborview Facilities Management Agreement
+Parties: Northstar Solutions Ltd. and Harborview FM Services Ltd.
+
+A.1 Governing Law
+This Agreement is governed by the laws of the jurisdiction in which the Customer is registered.
+
+A.2 Payment
+The Customer must pay undisputed invoices within 60 calendar days after receipt and acceptance of the related service. A late fee of 3% per month applies.
+
+A.3 Force Majeure
+Neither party is liable for delays caused by events beyond its reasonable control, including natural disasters and government action.
+
+A.4 Termination
+Either party may terminate immediately if the other party becomes insolvent. For all other terminations for convenience, either party must give 45 days written notice.
+
+A.5 Assignment
+Neither party may assign this Agreement without the other party's written consent.
+
+A.6 Confidentiality
+Both parties must protect each other's confidential information and use it only for this Agreement. This duty continues for 18 months after the Agreement ends. There are no stated carve-outs for public or independently developed information.
+
+Dataset Note:
+This excerpt does not include an automatic renewal, data protection, intellectual property, or limitation of liability clause.

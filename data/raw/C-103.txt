@@ -1,0 +1,21 @@
+Contract ID: C-103
+Title: Vantage Analytics Subscription Agreement
+Parties: Northstar Solutions Ltd. and Vantage Analytics Ltd.
+
+3.1 Payment
+Undisputed invoices are payable within 30 calendar days after receipt. Late fees, if any, are capped at 1% per month.
+
+5.1 Termination
+Either party may terminate for convenience by giving 30 days written notice. A party in breach has 10 business days to cure the breach before termination.
+
+6.1 Automatic Renewal
+The Agreement renews automatically for a further 12 months unless the Customer gives 30 days written notice before the renewal date.
+
+8.1 Data Protection
+Personal data is encrypted in transit and at rest. Confirmed breaches are reported within 48 hours. New subprocessors require prior written approval. Data is deleted or returned within 30 days after termination.
+
+9.1 Limitation of Liability
+Total liability for ordinary claims is capped at fees paid during the previous 12 months. This cap does not apply to fraud, gross negligence, confidentiality breaches, data protection breaches, or intellectual property infringement.
+
+Dataset Note:
+This excerpt does not include a confidentiality or intellectual property clause.

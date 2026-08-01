@@ -215,10 +215,13 @@ def run_review(req: ReviewRequest):
         std_text = std_row["text"]
         
     # Run deterministic risk comparator
-    risk_level, facts = evaluate_risk(req.category.value, clause_text)
+    risk_level, facts, facts_source = evaluate_risk(req.category.value, clause_text)
     
     # Generate explanation
-    reason, source = build_explanation(req.category.value, risk_level, facts, clause_text)
+    reason, exp_source = build_explanation(req.category.value, risk_level, facts, clause_text)
+    
+    # If LLM fact extraction was used, prioritize facts_source over explanation source
+    final_source = facts_source if facts_source == "rule_engine+llm_extraction" else exp_source
     
     # If NEI, standard_id and standard_text must be null
     if risk_level == "Not Enough Information":
@@ -234,7 +237,7 @@ def run_review(req: ReviewRequest):
         contract_evidence=clause_text,
         standard_id=std_id,
         standard_text=std_text,
-        source=source
+        source=final_source
     )
     
     # Retrieve saved review

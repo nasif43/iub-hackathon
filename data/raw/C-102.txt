@@ -1,0 +1,21 @@
+Contract ID: C-102
+Title: Bridgeline Logistics Framework Agreement
+Parties: Northstar Solutions Ltd. and Bridgeline Logistics Ltd.
+
+2.1 Fees and Invoicing
+The Customer shall settle all undisputed invoices no later than 10 calendar days after the invoice is issued.
+
+2.2 Ending the Agreement
+Either party may bring this Agreement to a close for any reason by giving 30 days advance written notice. Where a party fails to meet its obligations, it will be given 15 business days to remedy the failure.
+
+2.3 Keeping Information Private
+Each party agrees to safeguard the other's confidential information indefinitely, with no expiry on the duty, and to use it solely for purposes of this Agreement. Information that is public, already known, or independently developed is excluded.
+
+2.4 Who Owns What
+All materials created specifically for the Customer under this Agreement become the Customer's property once payment is received in full. Bridgeline retains ownership of any of its pre-existing tools used in performing the work, and grants the Customer a permanent right to use those tools as part of the delivered materials.
+
+2.5 Cap on Damages
+Bridgeline's total responsibility for any claim arising under this Agreement will not exceed the fees paid in the 6 months prior to the claim.
+
+Dataset Note:
+This excerpt does not include an automatic renewal or data protection clause.

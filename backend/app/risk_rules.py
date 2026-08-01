@@ -8,14 +8,14 @@ from backend.app.facts import (
     parse_liability_clause
 )
 
-def evaluate_payment(text: str) -> tuple[str, dict]:
-    facts = parse_payment_clause(text)
+def evaluate_payment(text: str) -> tuple[str, dict, str]:
+    facts, source = parse_payment_clause(text)
     
     # Check Shape B first
     if facts["payment_structure"] == "100% prepayment":
-        return "High Risk", facts
+        return "High Risk", facts, source
     if facts["payment_structure"] == "50/50 split":
-        return "Medium Risk", facts
+        return "Medium Risk", facts, source
         
     # Check Shape A
     days = facts["days_to_pay"]
@@ -32,68 +32,57 @@ def evaluate_payment(text: str) -> tuple[str, dict]:
         if fee is not None and fee > 1.0:
             risk = "High Risk"
             
-        return risk, facts
+        return risk, facts, source
         
-    return "Medium Risk", facts # default fallback if clause exists but shape unparsed
+    return "Medium Risk", facts, source # default fallback if clause exists but shape unparsed
 
-def evaluate_termination(text: str) -> tuple[str, dict]:
-    facts = parse_termination_clause(text)
+def evaluate_termination(text: str) -> tuple[str, dict, str]:
+    facts, source = parse_termination_clause(text)
     
     # Grounds check
     if facts["grounds"]["vendor"] == "convenience" and facts["grounds"]["customer"] == "breach":
-        return "High Risk", facts
+        return "High Risk", facts, source
         
     # Cure rights check
     if not facts["cure_present"] or facts["cure_days"] == 0:
-        return "High Risk", facts
-        
-    if facts["cure_days"] is not None and facts["cure_days"] > 10:
-        # standard is 10 business days. If it's more e.g. 30 days, that is higher cure time (favors breaching party)
-        # But wait, 30 days is common. Let's see: C-002 has 30 days (but that's asymmetric anyway).
-        pass
+        return "High Risk", facts, source
         
     # Notice period check
     notice = facts["notice_days"]
     if notice is not None:
         if notice == 30:
-            return "Low Risk", facts
-        elif notice >= 90: # Magnitude >= 2x standard (double standard 30 is 60, 90 is 3x)
-            return "High Risk", facts
+            return "Low Risk", facts, source
+        elif notice >= 90:
+            return "High Risk", facts, source
         else:
-            return "Medium Risk", facts
+            return "Medium Risk", facts, source
             
-    return "Low Risk", facts
+    return "Low Risk", facts, source
 
-def evaluate_renewal(text: str) -> tuple[str, dict]:
-    facts = parse_renewal_clause(text)
+def evaluate_renewal(text: str) -> tuple[str, dict, str]:
+    facts, source = parse_renewal_clause(text)
     months = facts["renewal_months"]
     notice = facts["notice_days"]
     
     if months is None and notice is None:
-    # If present but can't find renewal facts, it's not a complete match, but let's see.
-        return "Low Risk", facts
+        return "Low Risk", facts, source
         
-    # Standard: renewal length <= 12 months, notice-to-cancel <= 30 days
-    # Both within standard -> Low Risk
-    # One dimension exceeds standard -> Medium Risk
-    # Both dimensions exceed standard, or at least one is >= 2x standard (24mo, 60+ days notice) -> High Risk
     m_val = months if months is not None else 12
     n_val = notice if notice is not None else 30
     
     if m_val >= 24 or n_val >= 60:
-        return "High Risk", facts
+        return "High Risk", facts, source
     if m_val > 12 and n_val > 30:
-        return "High Risk", facts
+        return "High Risk", facts, source
     if m_val > 12 or n_val > 30:
-        return "Medium Risk", facts
+        return "Medium Risk", facts, source
         
-    return "Low Risk", facts
+    return "Low Risk", facts, source
 
 
-def evaluate_data_protection(text: str) -> tuple[str, dict]:
-    facts = parse_data_protection_clause(text)
+def evaluate_data_protection(text: str) -> tuple[str, dict, str]:
+    facts, source = parse_data_protection_clause(text)
     
-    # Score based on how many rules it violates
     violations = 0
     if not facts["encryption_at_rest"]:
         violations += 1
@@ -105,65 +94,52 @@ def evaluate_data_protection(text: str) -> tuple[str, dict]:
         violations += 1
         
     if violations >= 3:
-        return "High Risk", facts
+        return "High Risk", facts, source
     elif violations >= 1:
-        return "Medium Risk", facts
-    return "Low Risk", facts
+        return "Medium Risk", facts, source
+    return "Low Risk", facts, source
 
-def evaluate_confidentiality(text: str) -> tuple[str, dict]:
-    facts = parse_confidentiality_clause(text)
-    
-    # Standard: duration >= 3 years; carve-outs present; reciprocity.
-    # missing carve-outs as its own risk contributor:
-    # C-007 (1-year duration, no carve-outs) -> High Risk
-    # C-008 (3-year duration, no carve-outs) -> Medium Risk
-    # C-002 (one-sided, no duration) -> High Risk
+def evaluate_confidentiality(text: str) -> tuple[str, dict, str]:
+    facts, source = parse_confidentiality_clause(text)
     
     if not facts["reciprocal"]:
-        return "High Risk", facts
+        return "High Risk", facts, source
         
     duration = facts["duration_years"]
     carve_outs = facts["carve_outs_present"]
     
-    if duration is None: # missing duration
-        return "High Risk", facts
+    if duration is None:
+        return "High Risk", facts, source
         
     if duration < 3 and not carve_outs:
-        return "High Risk", facts
+        return "High Risk", facts, source
     if duration < 3 or not carve_outs:
         if duration < 3:
-            # check if also missing carve_outs
-            return "Medium Risk" if carve_outs else "High Risk", facts
-        else: # duration >= 3 but missing carve_outs
-            return "Medium Risk", facts
+            return "Medium Risk" if carve_outs else "High Risk", facts, source
+        else:
+            return "Medium Risk", facts, source
             
-    return "Low Risk", facts
+    return "Low Risk", facts, source
 
-def evaluate_ip(text: str) -> tuple[str, dict]:
-    facts = parse_ip_clause(text)
+def evaluate_ip(text: str) -> tuple[str, dict, str]:
+    facts, source = parse_ip_clause(text)
     
-    # High Risk if vendor retains all ownership (C-002, C-005)
     if not facts["customer_owns_custom"] or not facts["licence_permanent"]:
-        return "High Risk", facts
+        return "High Risk", facts, source
         
-    return "Low Risk", facts
+    return "Low Risk", facts, source
 
-def evaluate_liability(text: str) -> tuple[str, dict]:
-    facts = parse_liability_clause(text)
-    
-    # Cap window vs 12 months of fees; carve-outs present?
-    # Shorter cap window (C-001: one month) -> High Risk
-    # Asymmetric liability (C-005: customer unlimited, vendor capped) -> High Risk
-    # C-007 has 12-month cap but zero carve-outs -> Medium Risk
+def evaluate_liability(text: str) -> tuple[str, dict, str]:
+    facts, source = parse_liability_clause(text)
     
     if facts["asymmetric"]:
-        return "High Risk", facts
+        return "High Risk", facts, source
     if facts["cap_months"] is not None and facts["cap_months"] < 12:
-        return "High Risk", facts
+        return "High Risk", facts, source
     if not facts["carve_outs_present"]:
-        return "Medium Risk", facts
+        return "Medium Risk", facts, source
         
-    return "Low Risk", facts
+    return "Low Risk", facts, source
 
 EVALUATORS = {
     "Payment": evaluate_payment,
@@ -175,16 +151,16 @@ EVALUATORS = {
     "Limitation of Liability": evaluate_liability
 }
 
-def evaluate_risk(category: str, text: str | None) -> tuple[str, dict | None]:
+def evaluate_risk(category: str, text: str | None) -> tuple[str, dict | None, str]:
     """
-    Computes risk level and returns facts.
-    If text is None (category absent), returns 'Not Enough Information'
+    Computes risk level and returns (risk_level, facts, source).
+    If text is None (category absent), returns ('Not Enough Information', None, 'rule_engine')
     """
     if text is None:
-        return "Not Enough Information", None
+        return "Not Enough Information", None, "rule_engine"
         
     evaluator = EVALUATORS.get(category)
     if evaluator:
         return evaluator(text)
         
-    return "Not Enough Information", None
+    return "Not Enough Information", None, "rule_engine"
