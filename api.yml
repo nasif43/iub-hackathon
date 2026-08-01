@@ -1,0 +1,425 @@
+openapi: 3.0.3
+info:
+  title: Contract Review Assistant API
+  description: >
+    Ground-truth API contract for parallel, independent development.
+    Backend implements exactly this. Frontend consumes exactly this
+    (against a mock server or the real backend — either way, this file
+    is what both sides code against, not each other).
+    This file supersedes the prose in docs/05_api.md if the two ever
+    disagree — record any disagreement as an ADR in docs/08_decisions.md
+    and update both files in the same change.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000
+    description: Local dev server (no auth — see docs/01_requirements.md NFR-03)
+
+tags:
+  - name: contracts
+  - name: standards
+  - name: review
+  - name: reviews
+
+paths:
+  /contracts:
+    get:
+      tags: [contracts]
+      operationId: listContracts
+      summary: List all contracts
+      responses:
+        "200":
+          description: Array of contracts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ContractSummary"
+              examples:
+                default:
+                  value:
+                    - id: C-001
+                      title: BrightDesk SaaS Subscription Agreement
+                      parties: Northstar Solutions Ltd. and BrightDesk Software Ltd.
+
+  /contracts/{contract_id}:
+    get:
+      tags: [contracts]
+      operationId: getContract
+      summary: Get one contract, including raw text and dataset note
+      parameters:
+        - $ref: "#/components/parameters/ContractId"
+      responses:
+        "200":
+          description: Full contract record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContractDetail"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /contracts/{contract_id}/clauses:
+    get:
+      tags: [contracts]
+      operationId: listContractClauses
+      summary: List detected clause blocks for a contract across all 7 categories
+      parameters:
+        - $ref: "#/components/parameters/ContractId"
+      responses:
+        "200":
+          description: One entry per fixed category, present=false if no block was found
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Clause"
+              examples:
+                default:
+                  value:
+                    - category: Payment
+                      present: true
+                      heading: "2.1 Payment"
+                      text: "The Customer must pay each undisputed invoice within 15 calendar days after the invoice date."
+                    - category: Automatic Renewal
+                      present: false
+                      heading: null
+                      text: null
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /standards:
+    get:
+      tags: [standards]
+      operationId: listStandards
+      summary: List all 7 company-approved standards
+      responses:
+        "200":
+          description: Array of standards
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Standard"
+
+  /review:
+    post:
+      tags: [review]
+      operationId: runReview
+      summary: Run the full workflow for one contract + one category; persists a pending review
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewRequest"
+            examples:
+              happyPath:
+                summary: Clause present, deviates from standard
+                value:
+                  contract_id: C-001
+                  category: Automatic Renewal
+              abstentionPath:
+                summary: Clause absent from contract (matches MI-01)
+                value:
+                  contract_id: C-004
+                  category: Automatic Renewal
+      responses:
+        "200":
+          description: Review result (evidence always present unless risk_level is "Not Enough Information")
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewResult"
+              examples:
+                foundClause:
+                  value:
+                    review_id: 17
+                    contract_id: C-001
+                    category: Automatic Renewal
+                    risk_level: High Risk
+                    reason: "The contract requires 60 days' notice to cancel, which exceeds the 30-day standard."
+                    contract_evidence: "The Agreement automatically renews for another 12-month term unless the Customer gives written notice at least 60 days before the current term ends."
+                    standard_id: STD-REN-01
+                    standard_text: "An automatic renewal period must not be longer than 12 months. The customer should not be required to give more than 30 days notice to stop renewal. A renewal reminder should be sent at least 45 days before the renewal date."
+                    source: rule_engine
+                    status: pending
+                    human_review: Required
+                notEnoughInformation:
+                  value:
+                    review_id: 18
+                    contract_id: C-004
+                    category: Automatic Renewal
+                    risk_level: Not Enough Information
+                    reason: "This contract excerpt contains no automatic renewal clause. No notice period can be reported without inventing one."
+                    contract_evidence: null
+                    standard_id: null
+                    standard_text: null
+                    source: rule_engine
+                    status: pending
+                    human_review: Required
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /reviews:
+    get:
+      tags: [reviews]
+      operationId: listReviews
+      summary: List past reviews (audit trail), optionally filtered
+      parameters:
+        - name: contract_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/ReviewStatus"
+      responses:
+        "200":
+          description: Array of reviews
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReviewResult"
+
+  /reviews/{review_id}/decision:
+    post:
+      tags: [reviews]
+      operationId: recordReviewDecision
+      summary: Human reviewer records a decision on a pending review
+      parameters:
+        - name: review_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewDecisionRequest"
+            examples:
+              default:
+                value:
+                  status: approved
+                  reviewer_note: "Confirmed, escalate to legal for renegotiation."
+      responses:
+        "200":
+          description: Updated review row
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewResult"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+components:
+  parameters:
+    ContractId:
+      name: contract_id
+      in: path
+      required: true
+      schema:
+        type: string
+        example: C-001
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error: true
+            code: NOT_FOUND
+            message: "Contract C-999 does not exist."
+    ValidationError:
+      description: Request failed validation
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error: true
+            code: VALIDATION_ERROR
+            message: "'category' must be one of the 7 fixed clause categories."
+
+  schemas:
+    ClauseCategory:
+      type: string
+      description: Fixed vocabulary — frozen in docs/02_master_spec.md. Do not add values without an ADR.
+      enum:
+        - Payment
+        - Termination
+        - Data Protection
+        - Confidentiality
+        - Automatic Renewal
+        - Intellectual Property
+        - Limitation of Liability
+
+    RiskLevel:
+      type: string
+      description: Fixed vocabulary — no other string may ever appear in this field.
+      enum:
+        - Low Risk
+        - Medium Risk
+        - High Risk
+        - Not Enough Information
+
+    ReviewStatus:
+      type: string
+      enum:
+        - pending
+        - approved
+        - rejected
+        - marked_for_review
+
+    ReviewSource:
+      type: string
+      description: Audit trail of how the explanation text was produced. Never influences risk_level (see ADR-001).
+      enum:
+        - rule_engine
+        - rule_engine+llm
+
+    ContractSummary:
+      type: object
+      required: [id, title, parties]
+      properties:
+        id:
+          type: string
+          example: C-001
+        title:
+          type: string
+        parties:
+          type: string
+
+    ContractDetail:
+      allOf:
+        - $ref: "#/components/schemas/ContractSummary"
+        - type: object
+          required: [raw_text]
+          properties:
+            raw_text:
+              type: string
+            dataset_note:
+              type: string
+              nullable: true
+
+    Clause:
+      type: object
+      required: [category, present]
+      properties:
+        category:
+          $ref: "#/components/schemas/ClauseCategory"
+        present:
+          type: boolean
+        heading:
+          type: string
+          nullable: true
+        text:
+          type: string
+          nullable: true
+
+    Standard:
+      type: object
+      required: [id, category, text]
+      properties:
+        id:
+          type: string
+          example: STD-REN-01
+        category:
+          $ref: "#/components/schemas/ClauseCategory"
+        text:
+          type: string
+
+    ReviewRequest:
+      type: object
+      required: [contract_id, category]
+      properties:
+        contract_id:
+          type: string
+          example: C-001
+        category:
+          $ref: "#/components/schemas/ClauseCategory"
+
+    ReviewResult:
+      type: object
+      required:
+        - review_id
+        - contract_id
+        - category
+        - risk_level
+        - reason
+        - source
+        - status
+        - human_review
+      properties:
+        review_id:
+          type: integer
+        contract_id:
+          type: string
+        category:
+          $ref: "#/components/schemas/ClauseCategory"
+        risk_level:
+          $ref: "#/components/schemas/RiskLevel"
+        reason:
+          type: string
+        contract_evidence:
+          type: string
+          nullable: true
+          description: Verbatim substring of the source contract. Null only when risk_level is "Not Enough Information".
+        standard_id:
+          type: string
+          nullable: true
+        standard_text:
+          type: string
+          nullable: true
+          description: Verbatim substring of company_standards.json. Null only when risk_level is "Not Enough Information".
+        source:
+          $ref: "#/components/schemas/ReviewSource"
+        status:
+          $ref: "#/components/schemas/ReviewStatus"
+        reviewer_note:
+          type: string
+          nullable: true
+        human_review:
+          type: string
+          enum: ["Required"]
+          description: Always the literal string "Required". There is no code path that omits this (see docs/02_master_spec.md Safety Rule 5).
+
+    ReviewDecisionRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [approved, rejected, marked_for_review]
+        reviewer_note:
+          type: string
+          nullable: true
+
+    Error:
+      type: object
+      required: [error, code, message]
+      properties:
+        error:
+          type: boolean
+          enum: [true]
+        code:
+          type: string
+          enum: [NOT_FOUND, VALIDATION_ERROR, INTERNAL_ERROR]
+        message:
+          type: string

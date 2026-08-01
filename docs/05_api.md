@@ -1,7 +1,10 @@
-# 05 — API Specification (Frozen)
+# 05 — API Specification
+
+**Ground truth is `api.yml`** (OpenAPI 3.0, repo root). This document is a human-readable companion — if the two ever disagree, `api.yml` wins; fix the disagreement by updating both in the same change and recording why in `08_decisions.md`.
 
 Base URL: `http://localhost:8000`. No auth (see NFR-03 — explicitly out of scope for this build).
 All responses `application/json`. All errors follow the Error schema at the bottom.
+
 
 ---
 

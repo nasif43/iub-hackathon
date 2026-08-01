@@ -106,8 +106,35 @@ BACKEND_URL=http://localhost:8000
 DB_PATH=./data/cra.db
 ```
 
-## Interfaces (contract between backend and frontend — see 05_api.md for full spec)
-The frontend talks to the backend **only** through the REST API in `05_api.md`. No direct DB or file access from the frontend. This is the parallelization boundary: backend and frontend can be built simultaneously by different people/agents against this contract.
+## Interfaces (contract between backend and frontend — see 05_api.md and api.yml for full spec)
+The frontend talks to the backend **only** through the REST API defined in `api.yml`. No direct DB or file access from the frontend. This is the parallelization boundary.
+
+## Running Two Independent Devices in Parallel
+
+`api.yml` is the one file both devices need before they start — after that, they don't need to talk to each other again until the final integration run.
+
+**Device A — Backend:**
+1. Read `api.yml` + `agent.md` + `03_architecture.md`/`04_database.md`.
+2. Implement T-01 → T-06 exactly to the schemas/paths in `api.yml`.
+3. Serve on `http://localhost:8000`; FastAPI's auto-docs at `/docs` should match `api.yml` (if they diverge, `api.yml` is still ground truth — fix the code).
+
+**Device B — Frontend:**
+1. Read `api.yml` + `06_frontend.md`.
+2. Spin up a mock server directly from `api.yml` so there's zero dependency on backend progress:
+   ```bash
+   npm install -g @stoplight/prism-cli
+   prism mock api.yml --port 8000
+   ```
+   Prism serves the exact example responses embedded in `api.yml` (`foundClause`, `notEnoughInformation`, etc.) for every endpoint — the Streamlit app in T-07/T-08 can be built and clicked through end-to-end against this mock, including the abstention path, before a single line of backend code exists.
+3. Build `frontend/streamlit_app.py` pointed at `BACKEND_URL=http://localhost:8000` (the mock, for now).
+
+**Final integration (both devices, same room or same call):**
+1. Stop the Prism mock.
+2. Start the real FastAPI backend on port 8000.
+3. Point the frontend at the same `BACKEND_URL` — no code change needed if it was built against `api.yml` correctly, only the process behind port 8000 changed.
+4. Run T-09's test suite against the real backend; run the demo script in `12_demo_plan.md` once end-to-end.
+
+If either device needs to change a request/response shape mid-build, that's not a quiet Slack message — update `api.yml` first, add an ADR in `08_decisions.md`, then both devices pull the updated file. This is what keeps the two tracks genuinely independent instead of accidentally coupled through verbal agreements no one wrote down.
 
 ## What is explicitly NOT part of this architecture
 Vector search, RAG, embeddings, Docker, auth/login, multi-user concurrency handling beyond SQLite defaults, cloud deployment, CI pipeline.
