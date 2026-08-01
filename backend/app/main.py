@@ -6,12 +6,16 @@ from typing import List, Optional
 from backend.app.models import (
     ContractSummary, ContractDetail, Clause, Standard,
     ReviewRequest, ReviewResult, ReviewDecisionRequest, ErrorModel,
-    ClauseCategory, RiskLevel, ReviewStatus, ReviewSource
+    ClauseCategory, RiskLevel, ReviewStatus, ReviewSource,
+    ContractCreate, StandardCreate
 )
 from backend.app.db import get_db_connection
 from backend.app.risk_rules import evaluate_risk
 from backend.app.explain import build_explanation
 from backend.app.review import save_review, get_review_by_id, update_review_decision, list_reviews_from_db
+from backend.app.segmenter import segment_contract
+from backend.app.classifier import classify_clause, CATEGORIES
+
 
 app = FastAPI(title="Contract Review Assistant API")
 
@@ -87,6 +91,81 @@ def list_standards():
     rows = cursor.fetchall()
     conn.close()
     return [dict(row) for row in rows]
+
+@app.post("/contracts", response_model=ContractSummary, tags=["contracts"])
+def create_contract(req: ContractCreate):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Generate next ID
+    cursor.execute("SELECT id FROM contracts WHERE id LIKE 'C-USR-%';")
+    existing_ids = [row["id"] for row in cursor.fetchall()]
+    max_num = 0
+    for id_val in existing_ids:
+        try:
+            num = int(id_val.replace("C-USR-", ""))
+            if num > max_num:
+                max_num = num
+        except ValueError:
+            pass
+    next_id = f"C-USR-{max_num + 1:03d}"
+    
+    cursor.execute(
+        "INSERT INTO contracts (id, title, parties, raw_text) VALUES (?, ?, ?, ?);",
+        (next_id, req.title, req.parties, req.raw_text)
+    )
+    
+    # Segment and insert clauses dynamically
+    blocks = segment_contract(req.raw_text)
+    found_clauses = {}
+    for heading, body in blocks:
+        cat = classify_clause(heading, body)
+        if cat:
+            if cat not in found_clauses:
+                found_clauses[cat] = {"headings": [heading], "bodies": [body]}
+            else:
+                found_clauses[cat]["headings"].append(heading)
+                found_clauses[cat]["bodies"].append(body)
+                
+    # We dynamically load all categories from the dynamic list
+    categories = list(CATEGORIES)
+    for cat in categories:
+        if cat in found_clauses:
+            heading_str = " / ".join(found_clauses[cat]["headings"])
+            body_str = "\n\n".join(found_clauses[cat]["bodies"])
+            cursor.execute(
+                "INSERT INTO clauses (contract_id, category, heading, text, present) VALUES (?, ?, ?, ?, 1);",
+                (next_id, cat, heading_str, body_str)
+            )
+        else:
+            cursor.execute(
+                "INSERT INTO clauses (contract_id, category, heading, text, present) VALUES (?, ?, NULL, NULL, 0);",
+                (next_id, cat)
+            )
+            
+    conn.commit()
+    conn.close()
+    return ContractSummary(id=next_id, title=req.title, parties=req.parties)
+
+@app.post("/standards", response_model=Standard, tags=["standards"])
+def create_standard(req: StandardCreate):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "INSERT OR REPLACE INTO standards (id, category, text) VALUES (?, ?, ?);",
+            (req.id, req.category, req.text)
+        )
+        conn.commit()
+    except Exception as e:
+        conn.close()
+        raise HTTPException(status_code=400, detail=f"Failed to create standard: {e}")
+        
+    cursor.execute("SELECT id, category, text FROM standards WHERE id = ?;", (req.id,))
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row)
+
 
 @app.post("/review", response_model=ReviewResult, tags=["review"])
 def run_review(req: ReviewRequest):
