@@ -14,7 +14,8 @@ import {
   MessageSquare,
   Sparkles,
   X,
-  ExternalLink
+  ExternalLink,
+  Check
 } from "lucide-react";
 
 interface ResultCardProps {
@@ -26,20 +27,20 @@ interface ResultCardProps {
 export function ResultCard({ result, onDecisionUpdated, onGoToHistory }: ResultCardProps) {
   const [reviewerNote, setReviewerNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [toast, setToast] = useState<{
+  const [modal, setModal] = useState<{
     visible: boolean;
     status: string;
   }>({ visible: false, status: "" });
 
-  // Auto-dismiss toast popup after 5 seconds
+  // Auto-dismiss modal popup after 6 seconds
   useEffect(() => {
-    if (toast.visible) {
+    if (modal.visible) {
       const timer = setTimeout(() => {
-        setToast({ visible: false, status: "" });
-      }, 5000);
+        setModal({ visible: false, status: "" });
+      }, 6000);
       return () => clearTimeout(timer);
     }
-  }, [toast.visible]);
+  }, [modal.visible]);
 
   const getRiskBadge = (risk: string) => {
     switch (risk) {
@@ -79,43 +80,60 @@ export function ResultCard({ result, onDecisionUpdated, onGoToHistory }: ResultC
       onDecisionUpdated(updated);
       const statusLabel =
         status === "approved" ? "Approved" : status === "rejected" ? "Rejected" : "Marked for Review";
-      setToast({ visible: true, status: statusLabel });
+      setModal({ visible: true, status: statusLabel });
     }
   };
 
   return (
     <div className="glass-panel rounded-2xl p-6 border border-slate-800 shadow-2xl relative overflow-hidden space-y-6">
-      {/* Auto-dismissing Toast Popup */}
-      {toast.visible && (
-        <div className="fixed bottom-6 right-6 z-50 glass-panel border border-blue-500/40 bg-slate-900/95 p-4 rounded-2xl shadow-2xl flex items-center justify-between gap-4 max-w-md animate-in slide-in-from-bottom duration-300">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0">
-              <CheckCircle2 className="w-5 h-5" />
+      {/* Prominent Centered Opaque Decision Modal Popup */}
+      {modal.visible && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="bg-slate-900 border-2 border-blue-500 rounded-3xl p-8 max-w-lg w-full shadow-2xl space-y-6 text-center relative overflow-hidden">
+            {/* Top Accent Line */}
+            <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-blue-600 via-indigo-500 to-blue-400" />
+
+            {/* Close Cross Button */}
+            <button
+              onClick={() => setModal({ visible: false, status: "" })}
+              className="absolute top-4 right-4 p-2 rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Icon & Heading */}
+            <div className="w-16 h-16 rounded-2xl bg-blue-500/20 border border-blue-500/40 flex items-center justify-center text-blue-400 mx-auto">
+              <Check className="w-8 h-8 stroke-[3]" />
             </div>
-            <div>
-              <p className="text-sm font-bold text-slate-100 flex items-center gap-2">
-                Decision Recorded: <span className="text-blue-400">{toast.status}</span>
+
+            <div className="space-y-2">
+              <h3 className="text-2xl font-black text-white tracking-tight">
+                Decision Recorded!
+              </h3>
+              <p className="text-lg font-bold text-blue-400">
+                Status: {modal.status}
               </p>
-              {onGoToHistory && (
+              <p className="text-xs text-slate-300">
+                Your reviewer decision for <span className="font-semibold text-slate-100">{result.contract_id}</span> ({result.category}) has been logged to the audit trail.
+              </p>
+            </div>
+
+            {/* Subtext Action Link */}
+            {onGoToHistory && (
+              <div className="pt-2">
                 <button
                   onClick={() => {
-                    setToast({ visible: false, status: "" });
+                    setModal({ visible: false, status: "" });
                     onGoToHistory();
                   }}
-                  className="text-xs text-blue-400 hover:text-blue-300 font-semibold underline flex items-center gap-1 mt-0.5"
+                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-3 px-6 rounded-xl text-sm transition shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2"
                 >
-                  View in Review History <ExternalLink className="w-3 h-3" />
+                  <ExternalLink className="w-4 h-4" />
+                  View in Review History
                 </button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
-
-          <button
-            onClick={() => setToast({ visible: false, status: "" })}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
-          >
-            <X className="w-4 h-4" />
-          </button>
         </div>
       )}
 

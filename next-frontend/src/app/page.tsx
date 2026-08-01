@@ -87,7 +87,7 @@ export default function Home() {
     };
   }, [selectedContract]);
 
-  // Handle direct navigation from Audit History table to Review Studio
+  // Handle direct navigation from Review History table to Review Studio
   const handleSelectReviewFromHistory = (review: ReviewResult) => {
     const foundContract = contracts.find((c) => c.id === review.contract_id);
     if (foundContract) {
@@ -125,8 +125,8 @@ export default function Home() {
       <main className="flex-1 max-w-7xl w-full mx-auto p-6 space-y-8">
         {activeTab === "review" && (
           <div className="space-y-8">
-            {/* Target Contract Selection Panel */}
-            <div className="glass-panel p-6 rounded-2xl border border-slate-800 space-y-3 max-w-2xl">
+            {/* Target Contract Selection Panel - Full Width */}
+            <div className="glass-panel p-6 rounded-2xl border border-slate-800 space-y-3 w-full">
               <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center justify-between">
                 <span className="flex items-center gap-2">
                   <Building2 className="w-4 h-4 text-blue-400" />
@@ -140,7 +140,7 @@ export default function Home() {
               </label>
 
               {loadingContracts ? (
-                <div className="h-10 bg-slate-900 animate-pulse rounded-xl" />
+                <div className="h-12 bg-slate-900 animate-pulse rounded-xl" />
               ) : (
                 <select
                   value={selectedContract?.id || ""}
@@ -150,20 +150,20 @@ export default function Home() {
                       setSelectedContract(found);
                     }
                   }}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm font-semibold text-slate-100 focus:outline-none focus:border-blue-500 transition cursor-pointer"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text.base font-semibold text-slate-100 focus:outline-none focus:border-blue-500 transition cursor-pointer"
                 >
                   {contracts.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.id} — {c.title}
+                      {c.id} — {c.title} ({c.parties})
                     </option>
                   ))}
                 </select>
               )}
 
               {selectedContract && (
-                <div className="pt-2 text-xs text-slate-400 space-y-1">
-                  <p className="font-semibold text-slate-300 truncate">{selectedContract.title}</p>
-                  <p className="text-slate-400 truncate">Parties: {selectedContract.parties}</p>
+                <div className="pt-2 text-xs text-slate-400 flex flex-wrap items-center justify-between gap-2 border-t border-slate-800/50">
+                  <p className="font-semibold text-slate-200">{selectedContract.title}</p>
+                  <p className="text-slate-400">Parties: <span className="text-slate-300">{selectedContract.parties}</span></p>
                 </div>
               )}
             </div>
@@ -241,7 +241,7 @@ export default function Home() {
 
               {analyzingAll && !activeResult ? (
                 <div className="glass-panel p-12 rounded-2xl border border-slate-800 text-center space-y-3">
-                  <Loader2 className="w-8 h-8 text-blue-500 animate-spin mx-auto" />
+                  <Loader2 className="w-8 h-8 text-blue-500 animate-spin mx-auto text-blue-400" />
                   <p className="text-sm text-slate-300 font-medium">Running deterministic rule evaluation for {activeCategory}...</p>
                   <p className="text-xs text-slate-500">Extracting numeric facts and checking verbatim contract quotes against company standards.</p>
                 </div>

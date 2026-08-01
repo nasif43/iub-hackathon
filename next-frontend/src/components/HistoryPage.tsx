@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { ReviewResult } from "../types/api";
+import { ReviewResult, CATEGORIES } from "../types/api";
 import { fetchReviews } from "../lib/api";
-import { History, Filter, CheckCircle2, XCircle, AlertTriangle, Clock, ChevronRight } from "lucide-react";
+import { History, Filter, CheckCircle2, XCircle, AlertTriangle, Clock, ChevronRight, Search } from "lucide-react";
 
 interface HistoryPageProps {
   onSelectReview: (review: ReviewResult) => void;
@@ -11,8 +11,12 @@ interface HistoryPageProps {
 
 export function HistoryPage({ onSelectReview }: HistoryPageProps) {
   const [reviews, setReviews] = useState<ReviewResult[]>([]);
+  const [filterId, setFilterId] = useState("");
   const [filterContract, setFilterContract] = useState("");
+  const [filterCategory, setFilterCategory] = useState("All");
+  const [filterRisk, setFilterRisk] = useState("All");
   const [filterStatus, setFilterStatus] = useState("All");
+  const [filterNote, setFilterNote] = useState("");
   const [loading, setLoading] = useState(true);
 
   const loadData = async () => {
@@ -27,6 +31,15 @@ export function HistoryPage({ onSelectReview }: HistoryPageProps) {
   useEffect(() => {
     loadData();
   }, [filterContract, filterStatus]);
+
+  // Client-side filtering across all columns (ID, Contract, Category, Risk Level, Status, Reviewer Note)
+  const filteredReviews = reviews.filter((r) => {
+    if (filterId && !r.review_id.toString().includes(filterId)) return false;
+    if (filterCategory !== "All" && r.category !== filterCategory) return false;
+    if (filterRisk !== "All" && r.risk_level !== filterRisk) return false;
+    if (filterNote && (!r.reviewer_note || !r.reviewer_note.toLowerCase().includes(filterNote.toLowerCase()))) return false;
+    return true;
+  });
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -50,44 +63,116 @@ export function HistoryPage({ onSelectReview }: HistoryPageProps) {
           Review History
         </h2>
         <p className="text-sm text-slate-400 mt-1">
-          Complete log of all past contract clause reviews. Latest reviews appear at the top.
+          Complete log of all past contract clause reviews. Latest reviews appear at the top. Filterable by any field.
         </p>
       </div>
 
-      {/* Filters Bar */}
-      <div className="glass-panel p-4 rounded-xl flex flex-wrap items-center justify-between gap-4 border border-slate-800">
-        <div className="flex flex-wrap items-center gap-4 flex-1">
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-            <Filter className="w-4 h-4 text-blue-400" /> Filters
+      {/* Comprehensive Column Filters Bar */}
+      <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs font-semibold text-blue-400 uppercase tracking-wider">
+            <Filter className="w-4 h-4" /> Multi-Column Search & Filters
           </div>
-
-          <input
-            type="text"
-            placeholder="Filter by Contract ID (e.g. C-001)..."
-            value={filterContract}
-            onChange={(e) => setFilterContract(e.target.value)}
-            className="bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 w-64"
-          />
-
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+          <button
+            onClick={() => {
+              setFilterId("");
+              setFilterContract("");
+              setFilterCategory("All");
+              setFilterRisk("All");
+              setFilterStatus("All");
+              setFilterNote("");
+              loadData();
+            }}
+            className="text-xs text-slate-400 hover:text-white underline transition"
           >
-            <option value="All">All Statuses</option>
-            <option value="pending">Pending</option>
-            <option value="approved">Approved</option>
-            <option value="rejected">Rejected</option>
-            <option value="marked_for_review">Marked for Review</option>
-          </select>
+            Clear All Filters
+          </button>
         </div>
 
-        <button
-          onClick={loadData}
-          className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg transition"
-        >
-          Refresh Log
-        </button>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          {/* ID Filter */}
+          <div>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">ID</label>
+            <input
+              type="text"
+              placeholder="e.g. 17"
+              value={filterId}
+              onChange={(e) => setFilterId(e.target.value)}
+              className="w-full bg-slate-950/80 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-blue-500"
+            />
+          </div>
+
+          {/* Contract ID Filter */}
+          <div>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Contract</label>
+            <input
+              type="text"
+              placeholder="e.g. C-001"
+              value={filterContract}
+              onChange={(e) => setFilterContract(e.target.value)}
+              className="w-full bg-slate-950/80 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-blue-500"
+            />
+          </div>
+
+          {/* Category Filter */}
+          <div>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Category</label>
+            <select
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value)}
+              className="w-full bg-slate-950/80 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+            >
+              <option value="All">All Categories</option>
+              {CATEGORIES.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Risk Level Filter */}
+          <div>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Risk Level</label>
+            <select
+              value={filterRisk}
+              onChange={(e) => setFilterRisk(e.target.value)}
+              className="w-full bg-slate-950/80 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+            >
+              <option value="All">All Risks</option>
+              <option value="Low Risk">Low Risk</option>
+              <option value="Medium Risk">Medium Risk</option>
+              <option value="High Risk">High Risk</option>
+              <option value="Not Enough Information">Not Enough Info</option>
+            </select>
+          </div>
+
+          {/* Status Filter */}
+          <div>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Status</label>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="w-full bg-slate-950/80 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+            >
+              <option value="All">All Statuses</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+              <option value="marked_for_review">Marked for Review</option>
+            </select>
+          </div>
+
+          {/* Reviewer Note Filter */}
+          <div>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Reviewer Note</label>
+            <input
+              type="text"
+              placeholder="Search note text..."
+              value={filterNote}
+              onChange={(e) => setFilterNote(e.target.value)}
+              className="w-full bg-slate-950/80 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-blue-500"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Table */}
@@ -112,14 +197,14 @@ export function HistoryPage({ onSelectReview }: HistoryPageProps) {
                     Loading review history...
                   </td>
                 </tr>
-              ) : reviews.length === 0 ? (
+              ) : filteredReviews.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-slate-500">
-                    No reviews found matching criteria.
+                    No reviews found matching filters.
                   </td>
                 </tr>
               ) : (
-                reviews.map((r) => (
+                filteredReviews.map((r) => (
                   <tr 
                     key={r.review_id} 
                     onClick={() => onSelectReview(r)}
