@@ -19,6 +19,7 @@ def init_db():
     cursor.execute("PRAGMA foreign_keys = ON;")
     
     # Drop existing tables to ensure clean, idempotent start
+    cursor.execute("DROP TABLE IF EXISTS questions;")
     cursor.execute("DROP TABLE IF EXISTS reviews;")
     cursor.execute("DROP TABLE IF EXISTS clauses;")
     cursor.execute("DROP TABLE IF EXISTS standards;")
@@ -79,6 +80,19 @@ def init_db():
     );
     """)
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_reviews_contract ON reviews (contract_id);")
+
+    # Create questions table
+    cursor.execute("""
+    CREATE TABLE questions (
+        id TEXT PRIMARY KEY,
+        contract_id TEXT NOT NULL,
+        question TEXT NOT NULL,
+        category TEXT NOT NULL,
+        FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE
+    );
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_questions_contract ON questions (contract_id);")
     
     conn.commit()
     conn.close()
+

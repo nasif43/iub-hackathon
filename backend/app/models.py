@@ -91,3 +91,13 @@ class StandardCreate(BaseModel):
     category: str
     text: str
 
+class QuestionRequest(BaseModel):
+    contract_id: str
+    question: str
+
+class QuestionResult(BaseModel):
+    question_id: str
+    category: str
+    review_result: ReviewResult
+
+

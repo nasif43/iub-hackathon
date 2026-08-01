@@ -51,3 +51,10 @@ export const CATEGORIES = [
   "Intellectual Property",
   "Limitation of Liability",
 ] as const;
+
+export interface QuestionResult {
+  question_id: string;
+  category: string;
+  review_result: ReviewResult;
+}
+

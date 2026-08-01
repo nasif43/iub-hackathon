@@ -1,6 +1,7 @@
-import { Contract, Clause, ReviewResult, ReviewDecisionRequest } from "../types/api";
+import { Contract, Clause, ReviewResult, ReviewDecisionRequest, Standard, QuestionResult } from "../types/api";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+
 
 export async function fetchContracts(): Promise<Contract[]> {
   try {
@@ -125,4 +126,23 @@ export async function fetchStandards(): Promise<Standard[]> {
     return [];
   }
 }
+
+export async function askQuestion(
+  contractId: string,
+  question: string
+): Promise<QuestionResult | null> {
+  try {
+    const res = await fetch(`${BACKEND_URL}/questions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contract_id: contractId, question }),
+    });
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+    return await res.json();
+  } catch (error) {
+    console.error("askQuestion error:", error);
+    return null;
+  }
+}
+
 

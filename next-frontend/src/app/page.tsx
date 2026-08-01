@@ -7,7 +7,7 @@ import { HistoryPage } from "@/components/HistoryPage";
 import { AboutPage } from "@/components/AboutPage";
 import { StandardsPage } from "@/components/StandardsPage";
 import { Contract, Clause, ReviewResult, CATEGORIES } from "@/types/api";
-import { fetchContracts, fetchContractClauses, runReview, uploadContract } from "@/lib/api";
+import { fetchContracts, fetchContractClauses, runReview, uploadContract, askQuestion } from "@/lib/api";
 import { 
   FileCheck2, 
   Sparkles, 
@@ -229,7 +229,70 @@ export default function Home() {
               </div>
             </div>
 
+            {/* Ask a Question Section */}
+            <div className="glass-panel p-6 rounded-2xl border border-slate-800 space-y-4">
+              <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                <HelpCircle className="w-4 h-4 text-blue-400" />
+                Ask a Question about this Contract
+              </h4>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="e.g. Will this contract renew automatically? or Who owns the intellectual property?"
+                  id="user-custom-question"
+                  className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
+                  onKeyDown={async (e) => {
+                    if (e.key === "Enter") {
+                      const input = document.getElementById("user-custom-question") as HTMLInputElement;
+                      if (input && input.value && selectedContract) {
+                        const q = input.value;
+                        const res = await askQuestion(selectedContract.id, q);
+                        if (res) {
+                          alert(`AI classified this query under '${res.category}'. Risk level: ${res.review_result.risk_level}`);
+                          setActiveCategory(res.category);
+                          setAllReviewResults((prev) => ({
+                            ...prev,
+                            [res.category]: res.review_result,
+                          }));
+                          input.value = "";
+                        } else {
+                          alert("Failed to evaluate question.");
+                        }
+                      }
+                    }
+                  }}
+                />
+                <button
+                  onClick={async () => {
+                    const input = document.getElementById("user-custom-question") as HTMLInputElement;
+                    if (input && input.value && selectedContract) {
+                      const q = input.value;
+                      const res = await askQuestion(selectedContract.id, q);
+                      if (res) {
+                        alert(`AI classified this query under '${res.category}'. Risk level: ${res.review_result.risk_level}`);
+                        setActiveCategory(res.category);
+                        setAllReviewResults((prev) => ({
+                          ...prev,
+                          [res.category]: res.review_result,
+                        }));
+                        input.value = "";
+                      } else {
+                        alert("Failed to evaluate question.");
+                      }
+                    }
+                  }}
+                  className="px-5 bg-blue-600 hover:bg-blue-500 text-slate-100 text-sm font-semibold rounded-xl transition flex items-center gap-2"
+                >
+                  Ask AI
+                </button>
+              </div>
+              <p className="text-[10px] text-slate-500">
+                Type your question and press Enter. The system will dynamically classify the category and run standard compliance verification on the spot.
+              </p>
+            </div>
+
             {/* Autonomous Overview Grid: All 7 Categories At A Glance */}
+
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">

@@ -7,7 +7,7 @@ from backend.app.models import (
     ContractSummary, ContractDetail, Clause, Standard,
     ReviewRequest, ReviewResult, ReviewDecisionRequest, ErrorModel,
     ClauseCategory, RiskLevel, ReviewStatus, ReviewSource,
-    ContractCreate, StandardCreate
+    ContractCreate, StandardCreate, QuestionRequest, QuestionResult
 )
 from backend.app.db import get_db_connection
 from backend.app.risk_rules import evaluate_risk
@@ -287,3 +287,66 @@ def record_review_decision(review_id: int, req: ReviewDecisionRequest):
         reviewer_note=updated["reviewer_note"],
         human_review="Required"
     )
+
+def classify_question_category(q_text: str) -> str:
+    q_lower = q_text.lower()
+    if any(kw in q_lower for kw in ["renew", "extension"]):
+        return "Automatic Renewal"
+    if any(kw in q_lower for kw in ["payment", "fee", "invoice", "price", "billing", "pay"]):
+        return "Payment"
+    if any(kw in q_lower for kw in ["intellectual", "ip", "own", "copyright", "patent", "deliverables"]):
+        return "Intellectual Property"
+    if any(kw in q_lower for kw in ["data protection", "security", "privacy", "personal data", "gdpr", "encryption", "breach"]):
+        return "Data Protection"
+    if any(kw in q_lower for kw in ["termination", "terminate", "cancel"]):
+        return "Termination"
+    if any(kw in q_lower for kw in ["confidentiality", "confidential", "nda", "disclosure"]):
+        return "Confidentiality"
+    if any(kw in q_lower for kw in ["liability", "cap", "indemnify", "damage"]):
+        return "Limitation of Liability"
+    return "Payment"
+
+@app.post("/questions", response_model=QuestionResult, tags=["questions"])
+def ask_question(req: QuestionRequest):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Verify contract exists
+    cursor.execute("SELECT id FROM contracts WHERE id = ?;", (req.contract_id,))
+    if not cursor.fetchone():
+        conn.close()
+        raise HTTPException(status_code=404, detail=f"Contract {req.contract_id} does not exist.")
+        
+    # Classify category dynamically
+    category = classify_question_category(req.question)
+    
+    # Save the question
+    cursor.execute("SELECT id FROM questions WHERE id LIKE 'Q-%';")
+    existing_ids = [row["id"] for row in cursor.fetchall()]
+    max_num = 0
+    for id_val in existing_ids:
+        try:
+            num = int(id_val.replace("Q-", ""))
+            if num > max_num:
+                max_num = num
+        except ValueError:
+            pass
+    next_id = f"Q-{max_num + 1:03d}"
+    
+    cursor.execute(
+        "INSERT INTO questions (id, contract_id, question, category) VALUES (?, ?, ?, ?);",
+        (next_id, req.contract_id, req.question, category)
+    )
+    conn.commit()
+    conn.close()
+    
+    # Run standard review logic
+    review_req = ReviewRequest(contract_id=req.contract_id, category=category)
+    review_res = run_review(review_req)
+    
+    return QuestionResult(
+        question_id=next_id,
+        category=category,
+        review_result=review_res
+    )
+
