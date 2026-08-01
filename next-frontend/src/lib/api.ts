@@ -1,4 +1,4 @@
-import { Contract, Clause, ReviewResult, ReviewDecisionRequest } from "../types/api";
+import { Contract, Clause, ReviewResult, ReviewDecisionRequest, Standard } from "../types/api";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
 
@@ -76,3 +76,45 @@ export async function recordDecision(
     return null;
   }
 }
+
+export async function fetchStandards(): Promise<Standard[]> {
+  try {
+    const res = await fetch(`${BACKEND_URL}/standards`, { cache: "no-store" });
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+    return await res.json();
+  } catch (error) {
+    console.error("fetchStandards error:", error);
+    return [];
+  }
+}
+
+export async function createStandard(id: string, category: string, text: string): Promise<Standard | null> {
+  try {
+    const res = await fetch(`${BACKEND_URL}/standards`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, category, text }),
+    });
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+    return await res.json();
+  } catch (error) {
+    console.error("createStandard error:", error);
+    return null;
+  }
+}
+
+export async function createContract(title: string, parties: string, raw_text: string): Promise<Contract | null> {
+  try {
+    const res = await fetch(`${BACKEND_URL}/contracts`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, parties, raw_text }),
+    });
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+    return await res.json();
+  } catch (error) {
+    console.error("createContract error:", error);
+    return null;
+  }
+}
+

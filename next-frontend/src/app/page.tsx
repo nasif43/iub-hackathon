@@ -60,14 +60,16 @@ export default function Home() {
       setAllReviewResults({});
 
       // 1. Fetch detected clauses map for contract
-      const map = await fetchContractClauses(selectedContract.id);
+      if (!selectedContract) return;
+      const contractId = selectedContract.id;
+      const map = await fetchContractClauses(contractId);
       if (!isMounted) return;
       setClausesMap(map);
 
       // 2. Autonomously execute reviews for all 7 fixed categories in parallel
       const results: Record<string, ReviewResult> = {};
       const promises = CATEGORIES.map(async (cat) => {
-        const res = await runReview(selectedContract.id, cat);
+        const res = await runReview(contractId, cat);
         if (res) {
           results[cat] = res;
         }
