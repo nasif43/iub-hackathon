@@ -3,9 +3,13 @@
 import React, { useEffect, useState } from "react";
 import { ReviewResult } from "../types/api";
 import { fetchReviews } from "../lib/api";
-import { History, Filter, CheckCircle2, XCircle, AlertTriangle, Clock } from "lucide-react";
+import { History, Filter, CheckCircle2, XCircle, AlertTriangle, Clock, ExternalLink, ChevronRight } from "lucide-react";
 
-export function HistoryPage() {
+interface HistoryPageProps {
+  onSelectReview: (review: ReviewResult) => void;
+}
+
+export function HistoryPage({ onSelectReview }: HistoryPageProps) {
   const [reviews, setReviews] = useState<ReviewResult[]>([]);
   const [filterContract, setFilterContract] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
@@ -44,7 +48,7 @@ export function HistoryPage() {
           Audit Trail & History
         </h2>
         <p className="text-sm text-slate-400 mt-1">
-          Complete transparent audit log of all contract category reviews and human reviewer decisions.
+          Click any review record to inspect its evidence in the Review Studio and update human reviewer decisions.
         </p>
       </div>
 
@@ -96,27 +100,32 @@ export function HistoryPage() {
                 <th className="p-4">Risk Level</th>
                 <th className="p-4">Status</th>
                 <th className="p-4">Reviewer Note</th>
+                <th className="p-4 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/50 text-sm">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-slate-500">
+                  <td colSpan={7} className="p-8 text-center text-slate-500">
                     Loading audit records...
                   </td>
                 </tr>
               ) : reviews.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-slate-500">
+                  <td colSpan={7} className="p-8 text-center text-slate-500">
                     No reviews found matching criteria.
                   </td>
                 </tr>
               ) : (
                 reviews.map((r) => (
-                  <tr key={r.review_id} className="hover:bg-slate-900/40 transition">
+                  <tr 
+                    key={r.review_id} 
+                    onClick={() => onSelectReview(r)}
+                    className="hover:bg-blue-950/20 transition cursor-pointer group"
+                  >
                     <td className="p-4 font-mono text-xs text-slate-400">#{r.review_id}</td>
-                    <td className="p-4 font-bold text-blue-400">{r.contract_id}</td>
-                    <td className="p-4 text-slate-200">{r.category}</td>
+                    <td className="p-4 font-bold text-blue-400 group-hover:text-blue-300">{r.contract_id}</td>
+                    <td className="p-4 text-slate-200 font-medium">{r.category}</td>
                     <td className="p-4">
                       <span className={`text-xs font-semibold ${
                         r.risk_level === "High Risk" ? "text-rose-400" :
@@ -129,6 +138,11 @@ export function HistoryPage() {
                     <td className="p-4">{getStatusBadge(r.status)}</td>
                     <td className="p-4 text-xs text-slate-300 max-w-xs truncate">
                       {r.reviewer_note || <span className="text-slate-600 italic">No notes added</span>}
+                    </td>
+                    <td className="p-4 text-right">
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-blue-400 group-hover:translate-x-0.5 transition-transform">
+                        Inspect <ChevronRight className="w-3.5 h-3.5" />
+                      </span>
                     </td>
                   </tr>
                 ))

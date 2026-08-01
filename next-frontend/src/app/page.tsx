@@ -87,6 +87,20 @@ export default function Home() {
     };
   }, [selectedContract]);
 
+  // Handle direct navigation from Audit History table to Review Studio
+  const handleSelectReviewFromHistory = (review: ReviewResult) => {
+    const foundContract = contracts.find((c) => c.id === review.contract_id);
+    if (foundContract) {
+      setSelectedContract(foundContract);
+    }
+    setActiveCategory(review.category);
+    setAllReviewResults((prev) => ({
+      ...prev,
+      [review.category]: review,
+    }));
+    setActiveTab("review");
+  };
+
   const getRiskBadgeSmall = (risk?: string) => {
     switch (risk) {
       case "Low Risk":
@@ -303,7 +317,9 @@ export default function Home() {
           </div>
         )}
 
-        {activeTab === "history" && <HistoryPage />}
+        {activeTab === "history" && (
+          <HistoryPage onSelectReview={handleSelectReviewFromHistory} />
+        )}
 
         {activeTab === "about" && <AboutPage />}
       </main>
