@@ -24,6 +24,18 @@ Run through this before any demo or submission. Maps directly to Problem Stateme
 - [ ] MI-02 (C-007, termination for convenience) → `Not Enough Information`, no invented termination terms.
 - [ ] MI-03 (C-008, liability cap) → `Not Enough Information`, no invented cap figure.
 
+## Additional Test Cases (added after spec review — non-headline contracts the original draft missed)
+- [ ] C-002 Payment (100% prepaid) → High Risk via `payment_structure` shape, not NEI (ADR-008).
+- [ ] C-005 Payment (paid before campaign begins) → High Risk, same shape.
+- [ ] C-007 Payment (50/50 split) → Medium Risk, same shape.
+- [ ] C-002 Termination → High Risk flagged specifically as grounds asymmetry (any-reason/7-day vs. breach-only/30-day cure), not just a day-count diff (ADR-009).
+- [ ] C-008 Automatic Renewal → escalates to High Risk (both dimensions ≥2x standard), not stuck at Medium.
+- [ ] C-002 Confidentiality → High Risk; missing duration is scored as a risk contributor, not a category-wide NEI (ADR-010).
+- [ ] C-007 Confidentiality → High Risk (short duration + missing carve-outs).
+- [ ] C-008 Confidentiality → Medium Risk (duration compliant, carve-outs missing).
+- [ ] C-007 Intellectual Property → **Low Risk** (fully standard-compliant clause — confirms the system doesn't over-flag a good clause).
+- [ ] C-007 Limitation of Liability → Medium Risk (compliant cap window, missing carve-outs).
+
 ## Anti-Hallucination Spot Checks
 - [ ] Every `contract_evidence` string is an exact substring of the source `.txt` file (automate this as a test assertion, not a manual check).
 - [ ] Every `standard_text` string matches `company_standards.json` verbatim.

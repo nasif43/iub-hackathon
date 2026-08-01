@@ -5,7 +5,7 @@
 - **Backend:** FastAPI (REST) + Pydantic schemas
 - **Frontend:** Streamlit (single app, multi-page via `st.tabs` / `st.sidebar` selector) — fastest to demo, no build step
 - **Storage:** SQLite file (`data/cra.db`), loaded/seeded from the provided JSON/txt at startup
-- **LLM (optional, toggleable):** Groq or openrouter api will be provided, used *only* for explanation phrasing, gated by `USE_LLM_EXPLANATIONS` env var; system runs fully and correctly with it **off**
+- **LLM (optional, toggleable):** Groq or OpenRouter (free/low-cost inference — see ADR-011), used *only* for explanation phrasing, gated by `USE_LLM_EXPLANATIONS` env var; system runs fully and correctly with it **off**
 - **No** vector DB, **no** external search, **no** Docker requirement (nice-to-have, not required for the 4-hour build)
 
 ## Why this stack (for the "how would you defend this" question)
@@ -97,7 +97,10 @@ project/
 
 ## Environment Variables (frozen — do not add silently, record any new var in 08_decisions.md)
 ```
-OPENROUTER_API_KEY=            # only needed if USE_LLM_EXPLANATIONS=true
+LLM_PROVIDER=groq             # "groq" or "openrouter" — only relevant if USE_LLM_EXPLANATIONS=true
+GROQ_API_KEY=                 # set if LLM_PROVIDER=groq
+OPENROUTER_API_KEY=           # set if LLM_PROVIDER=openrouter
+LLM_MODEL=                    # e.g. a Groq-hosted Llama/Mixtral model, or an OpenRouter model string
 USE_LLM_EXPLANATIONS=false    # default OFF; system must work fully without it
 BACKEND_URL=http://localhost:8000
 DB_PATH=./data/cra.db

@@ -49,11 +49,11 @@ Every task below carries the required fields.
 ---
 **T-04 — Fact Extractor + Risk Rules**
 - Objective: Extract numeric facts (days/months/%/hours) and apply deterministic per-category comparators.
-- Description: Implement `facts.py` (regex → `{value, unit}`) and `risk_rules.py` (one function per category per `02_master_spec.md` risk-rule sketch).
+- Description: Implement `facts.py` (regex → `{value, unit}` for numeric facts, plus a `payment_structure` shape per ADR-008 and a termination-grounds keyword check per ADR-009) and `risk_rules.py` (one function per category per `02_master_spec.md` risk-rule sketch, including the "sub-fact absent ≠ NEI" branch per ADR-010).
 - Inputs: clause text + standard text
 - Outputs: `risk_level`, structured facts used
 - Dependencies: T-03, `company_standards.json`
-- Acceptance Criteria: all 12 `public_test_questions.json` produce the expected risk direction; all 3 `missing_information_cases.json` produce NEI.
+- Acceptance Criteria: all 12 `public_test_questions.json` produce the expected risk direction; all 3 `missing_information_cases.json` produce NEI; **all 8 contracts C-001…C-008 pass explicit unit tests per category where applicable** (not just the 5 named in the original spec draft) — in particular: C-002/C-005/C-007 payment-structure handling, C-002 termination-grounds asymmetry, C-008 automatic-renewal magnitude escalation to High, C-007 IP as a Low-risk "don't over-flag a compliant clause" case, C-007 liability missing-carve-outs case, C-002/C-007/C-008 confidentiality missing-duration/missing-carve-outs cases.
 - Estimated Difficulty: High
 - Estimated Time: 60 min
 - Owner: Backend
@@ -63,7 +63,7 @@ Every task below carries the required fields.
 ---
 **T-05 — Explanation Builder**
 - Objective: Produce the plain-language reason string.
-- Description: Template-based sentence built from extracted facts (default path). Optional: if `USE_LLM_EXPLANATIONS=true`, call Groq or Openrouter API to rephrase, then verify the rephrase doesn't introduce new numbers/claims not present in the template version; discard and fall back to template if verification fails.
+- Description: Template-based sentence built from extracted facts (default path). Optional: if `USE_LLM_EXPLANATIONS=true`, call Anthropic API to rephrase, then verify the rephrase doesn't introduce new numbers/claims not present in the template version; discard and fall back to template if verification fails.
 - Inputs: risk_level + facts + evidence text
 - Outputs: `reason` string, `source` field (`rule_engine` or `rule_engine+llm`)
 - Dependencies: T-04

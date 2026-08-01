@@ -46,7 +46,31 @@ Every major decision, dated and numbered. Never silently override one — add a 
 - Status: Accepted
 
 ---
-**ADR-007 — [Template for future decisions]**
+**ADR-008 — Payment category needs two fact shapes, not one**
+- Context: Intelligence-layer spec review (Groq/OpenRouter-run reviewer, dated during T-04 prep) found that C-002, C-005, and C-007 express payment terms as prepayment/split-payment structures with no "days after invoice" figure at all. A pure day-count regex either finds nothing (mis-firing as NEI on a clause that's clearly present) or crashes.
+- Decision: Fact Extractor emits one of two shapes for Payment: `days_to_pay` (numeric) or `payment_structure` (prepayment %, split schedule). Risk Comparator has a branch for each; see `02_master_spec.md`.
+- Alternatives Considered: Force everything into a day-count (rejected — C-002's "100% before work begins" has no day count to force); silently NEI on no day-count found (rejected — this is exactly the "invent an abstention where a real clause exists" failure mode the project is built to avoid).
+- Consequences: Fact Extractor and Risk Comparator both need a shape-detection step for Payment specifically; other categories don't need this.
+- Status: Accepted
+
+**ADR-009 — Termination needs a qualitative grounds check, not only numeric notice/cure comparison**
+- Context: Spec review flagged that C-002's asymmetry (vendor: any-reason/7-day notice; customer: breach-only/30-day cure) is a difference in termination *grounds*, invisible to a comparator that only diffs day-counts.
+- Decision: Risk Comparator for Termination checks each party's stated grounds (keyword match on "for any reason" / "for convenience" vs. "for breach" / "material breach") in addition to comparing notice/cure day-counts.
+- Status: Accepted
+
+**ADR-010 — "Clause present but a sub-fact is missing" is a risk signal, not a category-wide abstention**
+- Context: Spec review found this pattern in two categories independently — C-002's Confidentiality clause has no stated duration, and C-007/C-008's Confidentiality and C-007's Limitation of Liability clauses lack carve-out language — and the original rule sketch had no rule for it, risking an incorrect NEI on a clause that plainly exists.
+- Decision: NEI is reserved strictly for "this clause type does not appear anywhere in the contract." If the clause type is present but a specific sub-fact (duration, carve-outs) is absent from its text, that absence is scored as a risk contributor within Low/Medium/High, never as NEI.
+- Consequences: Risk Comparator functions need a "sub-fact absent" branch distinct from the "category absent" branch that triggers NEI — these must not share code paths.
+- Status: Accepted
+
+**ADR-011 — LLM explanation layer runs on Groq / OpenRouter, not Anthropic API**
+- Context: Team decision to avoid any paid Anthropic API usage for this build.
+- Decision: `USE_LLM_EXPLANATIONS`, when enabled, calls Groq or OpenRouter instead of the Anthropic API referenced in the original architecture draft. All references to `ANTHROPIC_API_KEY` / `claude-sonnet-4-6` in `03_architecture.md` and `.env.example` are replaced with the equivalent Groq/OpenRouter env vars and model string.
+- Consequences: The verification-before-display rule (ADR-001) is provider-agnostic and still applies in full — whichever provider's response comes back still gets checked against source evidence before being shown, with the same discard-and-fall-back-to-template behavior on failure. No change to the core anti-hallucination architecture, only to which API sits behind the optional explanation-rewrite step.
+- Status: Accepted (supersedes the Anthropic-specific env vars in `03_architecture.md`)
+
+**ADR-012 — [Template for future decisions]**
 - Context:
 - Decision:
 - Alternatives Considered:
