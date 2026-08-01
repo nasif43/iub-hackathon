@@ -1,1 +1,15 @@
 clean_zone_identifiers.sh
+.venv/
+venv/
+ENV/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+node_modules/
+.next/
+dist/
+build/

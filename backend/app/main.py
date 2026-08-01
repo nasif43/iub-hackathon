@@ -13,7 +13,18 @@ from backend.app.risk_rules import evaluate_risk
 from backend.app.explain import build_explanation
 from backend.app.review import save_review, get_review_by_id, update_review_decision, list_reviews_from_db
 
+from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI(title="Contract Review Assistant API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 # Setup exception handler for 404
 @app.exception_handler(HTTPException)
