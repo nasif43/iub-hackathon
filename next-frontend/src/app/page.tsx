@@ -14,7 +14,13 @@ import {
   Building2, 
   Layers, 
   Info,
-  Play
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  HelpCircle,
+  RefreshCw,
+  Zap
 } from "lucide-react";
 
 export default function Home() {
@@ -23,11 +29,14 @@ export default function Home() {
   const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
   const [clausesMap, setClausesMap] = useState<Record<string, Clause>>({});
   const [activeCategory, setActiveCategory] = useState<string>(CATEGORIES[0]);
-  const [reviewResult, setReviewResult] = useState<ReviewResult | null>(null);
+  
+  // Store all review results for the active contract: category -> ReviewResult
+  const [allReviewResults, setAllReviewResults] = useState<Record<string, ReviewResult>>({});
+  
   const [loadingContracts, setLoadingContracts] = useState(true);
-  const [reviewing, setReviewing] = useState(false);
+  const [analyzingAll, setAnalyzingAll] = useState(false);
 
-  // Load contracts on mount
+  // Load contract list on mount
   useEffect(() => {
     async function load() {
       setLoadingContracts(true);
@@ -41,26 +50,59 @@ export default function Home() {
     load();
   }, []);
 
-  // Fetch clauses when selected contract changes
+  // Autonomous batch review runner whenever selected contract changes
   useEffect(() => {
     if (!selectedContract) return;
-    async function loadClauses() {
+
+    let isMounted = true;
+    async function runBatchAnalysis() {
+      setAnalyzingAll(true);
+      setAllReviewResults({});
+
+      // 1. Fetch detected clauses map for contract
       const map = await fetchContractClauses(selectedContract.id);
+      if (!isMounted) return;
       setClausesMap(map);
+
+      // 2. Autonomously execute reviews for all 7 fixed categories in parallel
+      const results: Record<string, ReviewResult> = {};
+      const promises = CATEGORIES.map(async (cat) => {
+        const res = await runReview(selectedContract.id, cat);
+        if (res) {
+          results[cat] = res;
+        }
+      });
+
+      await Promise.all(promises);
+      if (isMounted) {
+        setAllReviewResults(results);
+        setAnalyzingAll(false);
+      }
     }
-    loadClauses();
+
+    runBatchAnalysis();
+
+    return () => {
+      isMounted = false;
+    };
   }, [selectedContract]);
 
-  const handleRunReview = async (category: string) => {
-    if (!selectedContract) return;
-    setReviewing(true);
-    const result = await runReview(selectedContract.id, category);
-    setReviewResult(result);
-    setReviewing(false);
+  const getRiskBadgeSmall = (risk?: string) => {
+    switch (risk) {
+      case "Low Risk":
+        return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"><CheckCircle2 className="w-3 h-3" /> Low Risk</span>;
+      case "Medium Risk":
+        return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20"><AlertTriangle className="w-3 h-3" /> Medium Risk</span>;
+      case "High Risk":
+        return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20"><XCircle className="w-3 h-3" /> High Risk</span>;
+      case "Not Enough Information":
+        return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-500/10 text-slate-400 border border-slate-500/20"><HelpCircle className="w-3 h-3" /> Not Enough Info</span>;
+      default:
+        return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-800 text-slate-400"><Loader2 className="w-3 h-3 animate-spin" /> Evaluating...</span>;
+    }
   };
 
-  const selectedClause = clausesMap[activeCategory];
-  const isPresent = selectedClause ? selectedClause.present : true;
+  const activeResult = allReviewResults[activeCategory];
 
   return (
     <div className="min-h-screen bg-[#0b0f19] text-slate-100 flex flex-col font-sans">
@@ -73,9 +115,16 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Contract Selector Panel */}
               <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-3 md:col-span-1">
-                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-blue-400" />
-                  Select Target Contract
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-blue-400" />
+                    Target Contract
+                  </span>
+                  {analyzingAll && (
+                    <span className="flex items-center gap-1 text-[10px] text-blue-400 font-bold animate-pulse">
+                      <Loader2 className="w-3 h-3 animate-spin" /> Batch Reviewing
+                    </span>
+                  )}
                 </label>
                 {loadingContracts ? (
                   <div className="h-10 bg-slate-900 animate-pulse rounded-xl" />
@@ -86,7 +135,6 @@ export default function Home() {
                       const found = contracts.find((c) => c.id === e.target.value);
                       if (found) {
                         setSelectedContract(found);
-                        setReviewResult(null);
                       }
                     }}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-100 focus:outline-none focus:border-blue-500 transition cursor-pointer"
@@ -112,12 +160,12 @@ export default function Home() {
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-semibold text-blue-400 uppercase tracking-wider flex items-center gap-2">
-                      <Sparkles className="w-4 h-4" /> Demo Flow Shortcuts
+                      <Zap className="w-4 h-4" /> Autonomous Demo Shortcuts
                     </span>
-                    <span className="text-[10px] text-slate-500">Hackathon Verification Specs</span>
+                    <span className="text-[10px] text-slate-500">Instant Full Contract Scan</span>
                   </div>
                   <p className="text-xs text-slate-400">
-                    Quickly switch between Happy Path (C-001 High Risk) and Abstention Path (C-004 Not Enough Info).
+                    Clicking a contract instantly runs all 7 clause reviews in parallel.
                   </p>
                 </div>
 
@@ -128,7 +176,6 @@ export default function Home() {
                       if (c1) {
                         setSelectedContract(c1);
                         setActiveCategory("Automatic Renewal");
-                        handleRunReview("Automatic Renewal");
                       }
                     }}
                     className="glass-card p-3 rounded-xl border border-slate-800 hover:border-blue-500/50 text-left transition group"
@@ -146,7 +193,6 @@ export default function Home() {
                       if (c4) {
                         setSelectedContract(c4);
                         setActiveCategory("Automatic Renewal");
-                        handleRunReview("Automatic Renewal");
                       }
                     }}
                     className="glass-card p-3 rounded-xl border border-slate-800 hover:border-indigo-500/50 text-left transition group"
@@ -155,80 +201,105 @@ export default function Home() {
                       <span>C-004 (Abstention MI-01)</span>
                       <ChevronRight className="w-4 h-4 text-indigo-400 group-hover:translate-x-1 transition-transform" />
                     </div>
-                    <span className="text-[11px] text-slate-400 font-semibold block mt-0.5">Not Enough Info • Category Absent</span>
+                    <span className="text-[11px] text-slate-400 font-semibold block mt-0.5">Not Enough Info • Clause Absent</span>
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* 7 Category Tabs & Analysis Section */}
+            {/* Autonomous Overview Grid: All 7 Categories At A Glance */}
             <div className="space-y-4">
-              <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                <Layers className="w-4 h-4 text-blue-400" />
-                Select Fixed Clause Category
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  <Layers className="w-4 h-4 text-blue-400" />
+                  Autonomous Risk Matrix Overview
+                </div>
+                {analyzingAll && (
+                  <span className="text-xs text-blue-400 flex items-center gap-2 bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Evaluating all 7 clause categories...
+                  </span>
+                )}
               </div>
 
-              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+              {/* 7 Category Cards Overview Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {CATEGORIES.map((cat) => {
-                  const isActive = activeCategory === cat;
+                  const res = allReviewResults[cat];
+                  const isSelected = activeCategory === cat;
                   const clauseInfo = clausesMap[cat];
-                  const clauseAbsent = clauseInfo && !clauseInfo.present;
+                  const isAbsent = clauseInfo && !clauseInfo.present;
 
                   return (
                     <button
                       key={cat}
-                      onClick={() => {
-                        setActiveCategory(cat);
-                        setReviewResult(null);
-                      }}
-                      className={`px-4 py-2.5 rounded-xl text-xs font-semibold transition whitespace-nowrap flex items-center gap-2 ${
-                        isActive
-                          ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30"
-                          : "glass-card text-slate-300 hover:text-white hover:bg-slate-800/80 border border-slate-800"
+                      onClick={() => setActiveCategory(cat)}
+                      className={`glass-card p-4 rounded-xl border text-left transition duration-200 flex flex-col justify-between h-28 ${
+                        isSelected
+                          ? "border-blue-500 bg-blue-950/30 shadow-lg shadow-blue-500/10 ring-1 ring-blue-500/50"
+                          : "border-slate-800/80 hover:border-slate-700 hover:bg-slate-900/60"
                       }`}
                     >
-                      {cat}
-                      {clauseAbsent && (
-                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-slate-800 text-slate-400 border border-slate-700">
-                          Absent
-                        </span>
-                      )}
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-xs font-bold text-slate-200 line-clamp-1">{cat}</span>
+                        {isAbsent && (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 shrink-0">
+                            Absent
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="mt-2">
+                        {analyzingAll && !res ? (
+                          <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                            <Loader2 className="w-3 h-3 animate-spin text-blue-400" />
+                            <span>Analyzing...</span>
+                          </div>
+                        ) : (
+                          getRiskBadgeSmall(res?.risk_level)
+                        )}
+                      </div>
+
+                      <span className="text-[10px] text-slate-500 flex items-center justify-between pt-1 border-t border-slate-800/40">
+                        <span>Click to view evidence</span>
+                        <ChevronRight className="w-3 h-3 text-slate-500" />
+                      </span>
                     </button>
                   );
                 })}
               </div>
-
-              {/* Action Trigger Area */}
-              <div className="glass-panel p-6 rounded-2xl border border-slate-800 flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
-                    Category: {activeCategory}
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    {!isPresent
-                      ? "Clause absent from contract excerpt. Demonstrates rule-engine abstention path."
-                      : "Clause present. Click to run deterministic fact extraction and benchmark comparator."}
-                  </p>
-                </div>
-
-                <button
-                  disabled={reviewing || !selectedContract}
-                  onClick={() => handleRunReview(activeCategory)}
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold py-3 px-6 rounded-xl text-sm transition shadow-xl shadow-blue-600/20 flex items-center gap-2 disabled:opacity-50"
-                >
-                  <Play className="w-4 h-4 fill-current" />
-                  {reviewing ? "Evaluating Rules..." : `Run Review for ${activeCategory}`}
-                </button>
-              </div>
             </div>
 
-            {/* Result Card Component Output */}
-            {reviewResult && (
-              <ResultCard
-                result={reviewResult}
-                onDecisionUpdated={(updated) => setReviewResult(updated)}
-              />
-            )}
+            {/* Detailed Result Inspection Card */}
+            <div className="pt-2">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-blue-400" />
+                  Detailed Category Inspection: <span className="text-blue-400">{activeCategory}</span>
+                </h3>
+              </div>
+
+              {analyzingAll && !activeResult ? (
+                <div className="glass-panel p-12 rounded-2xl border border-slate-800 text-center space-y-3">
+                  <Loader2 className="w-8 h-8 text-blue-500 animate-spin mx-auto" />
+                  <p className="text-sm text-slate-300 font-medium">Running deterministic rule evaluation for {activeCategory}...</p>
+                  <p className="text-xs text-slate-500">Extracting numeric facts and checking verbatim contract quotes against company standards.</p>
+                </div>
+              ) : activeResult ? (
+                <ResultCard
+                  result={activeResult}
+                  onDecisionUpdated={(updated) => {
+                    setAllReviewResults((prev) => ({
+                      ...prev,
+                      [activeCategory]: updated,
+                    }));
+                  }}
+                />
+              ) : (
+                <div className="glass-panel p-8 rounded-2xl border border-slate-800 text-center text-slate-500 text-sm">
+                  Select a contract above to trigger autonomous review.
+                </div>
+              )}
+            </div>
           </div>
         )}
 
