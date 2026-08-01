@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { ReviewResult } from "../types/api";
 import { fetchReviews } from "../lib/api";
-import { History, Filter, CheckCircle2, XCircle, AlertTriangle, Clock, ExternalLink, ChevronRight } from "lucide-react";
+import { History, Filter, CheckCircle2, XCircle, AlertTriangle, Clock, ChevronRight } from "lucide-react";
 
 interface HistoryPageProps {
   onSelectReview: (review: ReviewResult) => void;
@@ -18,7 +18,9 @@ export function HistoryPage({ onSelectReview }: HistoryPageProps) {
   const loadData = async () => {
     setLoading(true);
     const data = await fetchReviews(filterContract, filterStatus);
-    setReviews(data);
+    // Ensure latest reviews are sorted at the top (by review_id descending)
+    const sorted = [...data].sort((a, b) => b.review_id - a.review_id);
+    setReviews(sorted);
     setLoading(false);
   };
 
@@ -45,10 +47,10 @@ export function HistoryPage({ onSelectReview }: HistoryPageProps) {
       <div>
         <h2 className="text-2xl font-bold text-slate-100 flex items-center gap-2">
           <History className="w-6 h-6 text-blue-400" />
-          Audit Trail & History
+          Review History
         </h2>
         <p className="text-sm text-slate-400 mt-1">
-          Click any review record to inspect its evidence in the Review Studio and update human reviewer decisions.
+          Complete log of all past contract clause reviews. Latest reviews appear at the top.
         </p>
       </div>
 
@@ -107,7 +109,7 @@ export function HistoryPage({ onSelectReview }: HistoryPageProps) {
               {loading ? (
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-slate-500">
-                    Loading audit records...
+                    Loading review history...
                   </td>
                 </tr>
               ) : reviews.length === 0 ? (

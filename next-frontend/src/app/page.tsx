@@ -125,100 +125,47 @@ export default function Home() {
       <main className="flex-1 max-w-7xl w-full mx-auto p-6 space-y-8">
         {activeTab === "review" && (
           <div className="space-y-8">
-            {/* Top Workspace Header */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Contract Selector Panel */}
-              <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-3 md:col-span-1">
-                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center justify-between">
-                  <span className="flex items-center gap-2">
-                    <Building2 className="w-4 h-4 text-blue-400" />
-                    Target Contract
+            {/* Target Contract Selection Panel */}
+            <div className="glass-panel p-6 rounded-2xl border border-slate-800 space-y-3 max-w-2xl">
+              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-blue-400" />
+                  Select Target Contract To Review
+                </span>
+                {analyzingAll && (
+                  <span className="flex items-center gap-1 text-[10px] text-blue-400 font-bold animate-pulse">
+                    <Loader2 className="w-3 h-3 animate-spin" /> Batch Reviewing All 7 Clauses
                   </span>
-                  {analyzingAll && (
-                    <span className="flex items-center gap-1 text-[10px] text-blue-400 font-bold animate-pulse">
-                      <Loader2 className="w-3 h-3 animate-spin" /> Batch Reviewing
-                    </span>
-                  )}
-                </label>
-                {loadingContracts ? (
-                  <div className="h-10 bg-slate-900 animate-pulse rounded-xl" />
-                ) : (
-                  <select
-                    value={selectedContract?.id || ""}
-                    onChange={(e) => {
-                      const found = contracts.find((c) => c.id === e.target.value);
-                      if (found) {
-                        setSelectedContract(found);
-                      }
-                    }}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-100 focus:outline-none focus:border-blue-500 transition cursor-pointer"
-                  >
-                    {contracts.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.id} — {c.title}
-                      </option>
-                    ))}
-                  </select>
                 )}
+              </label>
 
-                {selectedContract && (
-                  <div className="pt-2 text-xs text-slate-400 space-y-1">
-                    <p className="font-semibold text-slate-300 truncate">{selectedContract.title}</p>
-                    <p className="text-slate-400 truncate">Parties: {selectedContract.parties}</p>
-                  </div>
-                )}
-              </div>
+              {loadingContracts ? (
+                <div className="h-10 bg-slate-900 animate-pulse rounded-xl" />
+              ) : (
+                <select
+                  value={selectedContract?.id || ""}
+                  onChange={(e) => {
+                    const found = contracts.find((c) => c.id === e.target.value);
+                    if (found) {
+                      setSelectedContract(found);
+                    }
+                  }}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm font-semibold text-slate-100 focus:outline-none focus:border-blue-500 transition cursor-pointer"
+                >
+                  {contracts.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.id} — {c.title}
+                    </option>
+                  ))}
+                </select>
+              )}
 
-              {/* Demo Shortcut Quick-Select Cards */}
-              <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-3 md:col-span-2 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-semibold text-blue-400 uppercase tracking-wider flex items-center gap-2">
-                      <Zap className="w-4 h-4" /> Autonomous Demo Shortcuts
-                    </span>
-                    <span className="text-[10px] text-slate-500">Instant Full Contract Scan</span>
-                  </div>
-                  <p className="text-xs text-slate-400">
-                    Clicking a contract instantly runs all 7 clause reviews in parallel.
-                  </p>
+              {selectedContract && (
+                <div className="pt-2 text-xs text-slate-400 space-y-1">
+                  <p className="font-semibold text-slate-300 truncate">{selectedContract.title}</p>
+                  <p className="text-slate-400 truncate">Parties: {selectedContract.parties}</p>
                 </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                  <button
-                    onClick={() => {
-                      const c1 = contracts.find((c) => c.id === "C-001");
-                      if (c1) {
-                        setSelectedContract(c1);
-                        setActiveCategory("Automatic Renewal");
-                      }
-                    }}
-                    className="glass-card p-3 rounded-xl border border-slate-800 hover:border-blue-500/50 text-left transition group"
-                  >
-                    <div className="flex items-center justify-between text-xs font-bold text-slate-200">
-                      <span>C-001 (Happy Path)</span>
-                      <ChevronRight className="w-4 h-4 text-blue-400 group-hover:translate-x-1 transition-transform" />
-                    </div>
-                    <span className="text-[11px] text-rose-400 font-semibold block mt-0.5">High Risk • Automatic Renewal</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      const c4 = contracts.find((c) => c.id === "C-004");
-                      if (c4) {
-                        setSelectedContract(c4);
-                        setActiveCategory("Automatic Renewal");
-                      }
-                    }}
-                    className="glass-card p-3 rounded-xl border border-slate-800 hover:border-indigo-500/50 text-left transition group"
-                  >
-                    <div className="flex items-center justify-between text-xs font-bold text-slate-200">
-                      <span>C-004 (Abstention MI-01)</span>
-                      <ChevronRight className="w-4 h-4 text-indigo-400 group-hover:translate-x-1 transition-transform" />
-                    </div>
-                    <span className="text-[11px] text-slate-400 font-semibold block mt-0.5">Not Enough Info • Clause Absent</span>
-                  </button>
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Autonomous Overview Grid: All 7 Categories At A Glance */}
@@ -226,7 +173,7 @@ export default function Home() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
                   <Layers className="w-4 h-4 text-blue-400" />
-                  Autonomous Risk Matrix Overview
+                  Autonomous Risk Matrix Overview (7 Fixed Clauses)
                 </div>
                 {analyzingAll && (
                   <span className="text-xs text-blue-400 flex items-center gap-2 bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20">
@@ -274,7 +221,7 @@ export default function Home() {
                       </div>
 
                       <span className="text-[10px] text-slate-500 flex items-center justify-between pt-1 border-t border-slate-800/40">
-                        <span>Click to view evidence</span>
+                        <span>Click to inspect details</span>
                         <ChevronRight className="w-3 h-3 text-slate-500" />
                       </span>
                     </button>
@@ -288,7 +235,7 @@ export default function Home() {
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-blue-400" />
-                  Detailed Category Inspection: <span className="text-blue-400">{activeCategory}</span>
+                  Detailed Clause Inspection: <span className="text-blue-400">{activeCategory}</span>
                 </h3>
               </div>
 
@@ -307,6 +254,7 @@ export default function Home() {
                       [activeCategory]: updated,
                     }));
                   }}
+                  onGoToHistory={() => setActiveTab("history")}
                 />
               ) : (
                 <div className="glass-panel p-8 rounded-2xl border border-slate-800 text-center text-slate-500 text-sm">
