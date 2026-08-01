@@ -63,7 +63,7 @@ Every task below carries the required fields.
 ---
 **T-05 — Explanation Builder**
 - Objective: Produce the plain-language reason string.
-- Description: Template-based sentence built from extracted facts (default path). Optional: if `USE_LLM_EXPLANATIONS=true`, call Anthropic API to rephrase, then verify the rephrase doesn't introduce new numbers/claims not present in the template version; discard and fall back to template if verification fails.
+- Description: Template-based sentence built from extracted facts (default path). Optional: if `USE_LLM_EXPLANATIONS=true`, call Groq or Openrouter API to rephrase, then verify the rephrase doesn't introduce new numbers/claims not present in the template version; discard and fall back to template if verification fails.
 - Inputs: risk_level + facts + evidence text
 - Outputs: `reason` string, `source` field (`rule_engine` or `rule_engine+llm`)
 - Dependencies: T-04
