@@ -5,13 +5,7 @@ import {
   FileText, 
   History, 
   ShieldAlert, 
-  Sparkles, 
-  CheckCircle2, 
-  XCircle, 
-  AlertTriangle, 
-  HelpCircle,
-  ArrowRight,
-  UserCheck
+  Sparkles
 } from "lucide-react";
 
 interface NavbarProps {
@@ -61,7 +55,7 @@ export function Navbar({ activeTab, setActiveTab }: NavbarProps) {
             }`}
           >
             <History className="w-4 h-4" />
-            Audit Trail
+            Review History
           </button>
           <button
             onClick={() => setActiveTab("about")}

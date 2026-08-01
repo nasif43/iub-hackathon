@@ -13,17 +13,33 @@ import {
   BookOpen, 
   MessageSquare,
   Sparkles,
-  Lock
+  X,
+  ExternalLink
 } from "lucide-react";
 
 interface ResultCardProps {
   result: ReviewResult;
   onDecisionUpdated: (updated: ReviewResult) => void;
+  onGoToHistory?: () => void;
 }
 
-export function ResultCard({ result, onDecisionUpdated }: ResultCardProps) {
+export function ResultCard({ result, onDecisionUpdated, onGoToHistory }: ResultCardProps) {
   const [reviewerNote, setReviewerNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState<{
+    visible: boolean;
+    status: string;
+  }>({ visible: false, status: "" });
+
+  // Auto-dismiss toast popup after 5 seconds
+  useEffect(() => {
+    if (toast.visible) {
+      const timer = setTimeout(() => {
+        setToast({ visible: false, status: "" });
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast.visible]);
 
   const getRiskBadge = (risk: string) => {
     switch (risk) {
@@ -61,11 +77,48 @@ export function ResultCard({ result, onDecisionUpdated }: ResultCardProps) {
     setSubmitting(false);
     if (updated) {
       onDecisionUpdated(updated);
+      const statusLabel =
+        status === "approved" ? "Approved" : status === "rejected" ? "Rejected" : "Marked for Review";
+      setToast({ visible: true, status: statusLabel });
     }
   };
 
   return (
     <div className="glass-panel rounded-2xl p-6 border border-slate-800 shadow-2xl relative overflow-hidden space-y-6">
+      {/* Auto-dismissing Toast Popup */}
+      {toast.visible && (
+        <div className="fixed bottom-6 right-6 z-50 glass-panel border border-blue-500/40 bg-slate-900/95 p-4 rounded-2xl shadow-2xl flex items-center justify-between gap-4 max-w-md animate-in slide-in-from-bottom duration-300">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                Decision Recorded: <span className="text-blue-400">{toast.status}</span>
+              </p>
+              {onGoToHistory && (
+                <button
+                  onClick={() => {
+                    setToast({ visible: false, status: "" });
+                    onGoToHistory();
+                  }}
+                  className="text-xs text-blue-400 hover:text-blue-300 font-semibold underline flex items-center gap-1 mt-0.5"
+                >
+                  View in Review History <ExternalLink className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          <button
+            onClick={() => setToast({ visible: false, status: "" })}
+            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Background Accent glow */}
       <div className="absolute -right-20 -top-20 w-60 h-60 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
 
