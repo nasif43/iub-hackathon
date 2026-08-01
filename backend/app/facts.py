@@ -109,15 +109,27 @@ def parse_termination_clause(text: str) -> dict:
     # Check asymmetric grounds:
     # Vendor termination convenience vs customer breach only
     # E.g. "NovaStaff may terminate ... for any reason ... Customer may terminate only for a material breach"
-    if "novastaff may terminate" in text_lower or "vendor may terminate" in text_lower or "either party may terminate" not in text_lower:
-        # Let's inspect parts of the sentence
-        if "for any reason" in text_lower or "for convenience" in text_lower:
-            # If it restricts the Customer/Customer may terminate only:
-            if "customer may terminate only" in text_lower or "customer may terminate only for a material breach" in text_lower or "customer may terminate only for breach" in text_lower:
-                res["grounds"]["vendor"] = "convenience"
-                res["grounds"]["customer"] = "breach"
-                
+    vendor_names = ["vendor", "provider", "seller", "novastaff", "marketloop"]
+    customer_names = ["customer", "client", "buyer", "northstar"]
+    
+    vendor_convenience = False
+    customer_breach = False
+    
+    sentences = [s.strip() for s in text_lower.replace("\n", " ").split(".") if s.strip()]
+    for s in sentences:
+        # Check if a vendor role can terminate for convenience
+        if any(v_name in s for v_name in vendor_names) and ("any reason" in s or "convenience" in s or "notice" in s):
+            vendor_convenience = True
+        # Check if customer role is restricted to breach
+        if any(c_name in s for c_name in customer_names) and ("only for" in s or "only in" in s or "only for breach" in s or "only for a material breach" in s or "only after a material breach" in s):
+            customer_breach = True
+            
+    if vendor_convenience and customer_breach:
+        res["grounds"]["vendor"] = "convenience"
+        res["grounds"]["customer"] = "breach"
+        
     return res
+
 
 def parse_renewal_clause(text: str) -> dict:
     """
@@ -194,7 +206,7 @@ def parse_confidentiality_clause(text: str) -> dict:
         res["carve_outs_present"] = False
         
     # Reciprocal
-    if "customer must protect" in text_lower and "novastaff has no confidentiality duty" in text_lower:
+    if "customer must protect" in text_lower and ("has no confidentiality duty" in text_lower or "no duty" in text_lower or "no obligation" in text_lower or "not reciprocal" in text_lower or "novastaff has no" in text_lower):
         res["reciprocal"] = False
         
     return res
@@ -211,13 +223,15 @@ def parse_ip_clause(text: str) -> dict:
         "licence_permanent": True
     }
     
-    if "novastaff owns all" in text_lower or "marketloop owns all" in text_lower or "vendor owns" in text_lower:
+    if "vendor owns" in text_lower or "provider owns" in text_lower or "novastaff owns" in text_lower or "marketloop owns" in text_lower or "developer owns" in text_lower:
         res["customer_owns_custom"] = False
+
         
-    if "six months" in text_lower or "usable only while this agreement remains active" in text_lower or "temporary licence" in text_lower:
+    if "six months" in text_lower or "usable only while this agreement remains active" in text_lower or "temporary licence" in text_lower or "temporary license" in text_lower:
         res["licence_permanent"] = False
         
     return res
+
 
 def parse_liability_clause(text: str) -> dict:
     """

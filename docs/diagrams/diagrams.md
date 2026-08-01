@@ -6,8 +6,8 @@ This document contains Mermaid diagrams illustrating the Contract Review Assista
 
 ```mermaid
 graph TD
-    User([User / Reviewer]) -->|Interacts| StreamlitApp[Streamlit Frontend UI]
-    StreamlitApp -->|HTTP REST Requests| FastAPI[FastAPI Backend Server]
+    User([User / Reviewer]) -->|Interacts| NextJSApp[Next.js Frontend UI]
+    NextJSApp -->|HTTP REST Requests| FastAPI[FastAPI Backend Server]
     
     subgraph FastAPI Backend App
         FastAPI --> Main[main.py Router]
@@ -29,7 +29,7 @@ graph TD
 sequenceDiagram
     autonumber
     actor User as Human Reviewer
-    participant UI as Streamlit Frontend
+    participant UI as Next.js Frontend
     participant API as FastAPI Backend
     participant DB as SQLite (cra.db)
     participant Rules as Rule Engine (risk_rules.py)

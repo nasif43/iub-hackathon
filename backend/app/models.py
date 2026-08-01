@@ -2,14 +2,21 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 from enum import Enum
 
-class ClauseCategory(str, Enum):
-    Payment = "Payment"
-    Termination = "Termination"
-    DataProtection = "Data Protection"
-    Confidentiality = "Confidentiality"
-    AutomaticRenewal = "Automatic Renewal"
-    IntellectualProperty = "Intellectual Property"
-    LimitationOfLiability = "Limitation of Liability"
+from typing import Any
+from pydantic import GetCoreSchemaHandler
+from pydantic_core import core_schema
+
+class ClauseCategory(str):
+    @property
+    def value(self) -> str:
+        return str(self)
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls, source_type: Any, handler: GetCoreSchemaHandler
+    ) -> core_schema.CoreSchema:
+        return core_schema.no_info_after_validator_function(cls, core_schema.str_schema())
+
 
 class RiskLevel(str, Enum):
     LowRisk = "Low Risk"
@@ -73,3 +80,14 @@ class ErrorModel(BaseModel):
     error: bool = True
     code: str
     message: str
+
+class ContractCreate(BaseModel):
+    title: str
+    parties: str
+    raw_text: str
+
+class StandardCreate(BaseModel):
+    id: str
+    category: str
+    text: str
+
