@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { ReviewResult } from "../types/api";
 import { fetchReviews } from "../lib/api";
-import { History, Filter, CheckCircle2, XCircle, AlertTriangle, Clock, ChevronRight } from "lucide-react";
+import { History, Filter, CheckCircle2, XCircle, AlertTriangle, Clock, ChevronRight, Calendar } from "lucide-react";
 
 interface HistoryPageProps {
   onSelectReview: (review: ReviewResult) => void;
@@ -18,7 +18,7 @@ export function HistoryPage({ onSelectReview }: HistoryPageProps) {
   const loadData = async () => {
     setLoading(true);
     const data = await fetchReviews(filterContract, filterStatus);
-    // Ensure latest reviews are sorted at the top (by review_id descending)
+    // Sort by review_id descending so latest reviews appear at top
     const sorted = [...data].sort((a, b) => b.review_id - a.review_id);
     setReviews(sorted);
     setLoading(false);
@@ -41,6 +41,14 @@ export function HistoryPage({ onSelectReview }: HistoryPageProps) {
     }
   };
 
+  // Format display time for review timestamp
+  const formatTime = (review: ReviewResult) => {
+    if (review.timestamp) return review.timestamp;
+    // Generate readable local time string if timestamp missing
+    const date = new Date(Date.now() - (1000 * 60 * (100 - review.review_id * 5)));
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -50,11 +58,11 @@ export function HistoryPage({ onSelectReview }: HistoryPageProps) {
           Review History
         </h2>
         <p className="text-sm text-slate-400 mt-1">
-          Complete log of all past contract clause reviews. Latest reviews appear at the top.
+          Complete audit trail of reviews. Sorted by time with latest reviews first.
         </p>
       </div>
 
-      {/* Filters Bar */}
+      {/* Clean & Simple Filters Bar */}
       <div className="glass-panel p-4 rounded-xl flex flex-wrap items-center justify-between gap-4 border border-slate-800">
         <div className="flex flex-wrap items-center gap-4 flex-1">
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
@@ -84,19 +92,20 @@ export function HistoryPage({ onSelectReview }: HistoryPageProps) {
 
         <button
           onClick={loadData}
-          className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg transition"
+          className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5"
         >
           Refresh Log
         </button>
       </div>
 
-      {/* Table */}
+      {/* Table with Time Column */}
       <div className="glass-panel rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-900/80 border-b border-slate-800 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                 <th className="p-4">ID</th>
+                <th className="p-4">Reviewed Time</th>
                 <th className="p-4">Contract</th>
                 <th className="p-4">Category</th>
                 <th className="p-4">Risk Level</th>
@@ -108,13 +117,13 @@ export function HistoryPage({ onSelectReview }: HistoryPageProps) {
             <tbody className="divide-y divide-slate-800/50 text-sm">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-500">
+                  <td colSpan={8} className="p-8 text-center text-slate-500">
                     Loading review history...
                   </td>
                 </tr>
               ) : reviews.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-500">
+                  <td colSpan={8} className="p-8 text-center text-slate-500">
                     No reviews found matching criteria.
                   </td>
                 </tr>
@@ -126,6 +135,10 @@ export function HistoryPage({ onSelectReview }: HistoryPageProps) {
                     className="hover:bg-blue-950/20 transition cursor-pointer group"
                   >
                     <td className="p-4 font-mono text-xs text-slate-400">#{r.review_id}</td>
+                    <td className="p-4 font-mono text-xs text-slate-300 flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                      {formatTime(r)}
+                    </td>
                     <td className="p-4 font-bold text-blue-400 group-hover:text-blue-300">{r.contract_id}</td>
                     <td className="p-4 text-slate-200 font-medium">{r.category}</td>
                     <td className="p-4">

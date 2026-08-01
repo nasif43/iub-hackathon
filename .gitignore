@@ -5,3 +5,5 @@ __pycache__/
 .agents/
 cloudflared
 data/*.db
+*.db
+**/__pycache__/

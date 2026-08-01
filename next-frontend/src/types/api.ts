@@ -34,6 +34,7 @@ export interface ReviewResult {
   source: "rule_engine" | "rule_engine+llm";
   status: "pending" | "approved" | "rejected" | "marked_for_review";
   reviewer_note: string | null;
+  timestamp?: string;
   human_review: "Required";
 }
 
