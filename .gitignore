@@ -1,2 +1,6 @@
 clean_zone_identifiers.sh
 .venv/*
+**/__pycache__/
+*.db
+cloudflared
+.agents/
