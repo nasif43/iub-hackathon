@@ -175,6 +175,94 @@ EVALUATORS = {
     "Limitation of Liability": evaluate_liability
 }
 
+def evaluate_dynamic_rules(category: str, text: str) -> tuple[str, dict]:
+    import re
+    # Extract any integers from the text
+    numbers = [int(n) for n in re.findall(r'\b\d+\b', text)]
+    first_number = numbers[0] if numbers else None
+    
+    # Query rules for this category from database
+    try:
+        from backend.app.db import get_db_connection
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT rule_type, parameter_name, operator, value, risk_level, reason FROM rules WHERE category = ?;", (category,))
+        rules = cursor.fetchall()
+        
+        # Also check standard
+        cursor.execute("SELECT text FROM standards WHERE category = ?;", (category,))
+        standard_row = cursor.fetchone()
+        standard_text = standard_row["text"] if standard_row else None
+        
+        conn.close()
+    except Exception:
+        rules = []
+        standard_text = None
+        
+    facts = {
+        "text": text,
+        "numbers_found": numbers,
+        "standard_text": standard_text
+    }
+    
+    current_risk = "Low Risk"
+    reasons = []
+    
+    for rule in rules:
+        rtype = rule["rule_type"]
+        val = rule["value"]
+        rlevel = rule["risk_level"]
+        reason = rule["reason"]
+        
+        triggered = False
+        if rtype == "keyword_must_present":
+            if val.lower() not in text.lower():
+                triggered = True
+        elif rtype == "keyword_forbidden":
+            if val.lower() in text.lower():
+                triggered = True
+        elif rtype == "numeric_limit" and first_number is not None:
+            try:
+                limit = int(val)
+                op = rule["operator"]
+                if op == ">" and first_number > limit:
+                    triggered = True
+                elif op == ">=" and first_number >= limit:
+                    triggered = True
+                elif op == "<" and first_number < limit:
+                    triggered = True
+                elif op == "<=" and first_number <= limit:
+                    triggered = True
+                elif op == "=" and first_number == limit:
+                    triggered = True
+            except ValueError:
+                pass
+                
+        if triggered:
+            levels = {"Low Risk": 1, "Medium Risk": 2, "High Risk": 3}
+            if levels.get(rlevel, 1) > levels.get(current_risk, 1):
+                current_risk = rlevel
+            reasons.append(reason)
+            
+    if reasons:
+        facts["violated_rules"] = reasons
+    else:
+        # Default fallback standard comparison: if standard exists and contract has negations
+        if standard_text:
+            text_lower = text.lower()
+            std_lower = standard_text.lower()
+            # If standard mentions a number and contract doesn't, or vice-versa
+            std_nums = re.findall(r'\b\d+\b', standard_text)
+            con_nums = re.findall(r'\b\d+\b', text)
+            if std_nums and not con_nums:
+                current_risk = "Medium Risk"
+                reasons.append("Contract is missing expected numeric terms from standard policy.")
+            elif any(neg in text_lower for neg in ["unilateral", "solely", "no right", "excludes"]):
+                current_risk = "Medium Risk"
+                reasons.append("Contract has restrictive or unilateral phrasing.")
+                
+    return current_risk, facts
+
 def evaluate_risk(category: str, text: str | None) -> tuple[str, dict | None]:
     """
     Computes risk level and returns facts.
@@ -187,4 +275,6 @@ def evaluate_risk(category: str, text: str | None) -> tuple[str, dict | None]:
     if evaluator:
         return evaluator(text)
         
-    return "Not Enough Information", None
+    # Fallback to dynamic rule engine
+    return evaluate_dynamic_rules(category, text)
+

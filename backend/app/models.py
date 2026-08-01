@@ -100,4 +100,19 @@ class QuestionResult(BaseModel):
     category: str
     review_result: ReviewResult
 
+class RuleCreate(BaseModel):
+    category: str
+    rule_type: str  # 'numeric_limit', 'keyword_must_present', 'keyword_forbidden'
+    parameter_name: Optional[str] = None
+    operator: Optional[str] = None
+    value: str
+    risk_level: str
+    reason: str
+
+class ClauseCreate(BaseModel):
+    category: str
+    heading: Optional[str] = None
+    text: str
+
+
 

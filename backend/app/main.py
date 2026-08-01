@@ -7,7 +7,8 @@ from backend.app.models import (
     ContractSummary, ContractDetail, Clause, Standard,
     ReviewRequest, ReviewResult, ReviewDecisionRequest, ErrorModel,
     ClauseCategory, RiskLevel, ReviewStatus, ReviewSource,
-    ContractCreate, StandardCreate, QuestionRequest, QuestionResult
+    ContractCreate, StandardCreate, QuestionRequest, QuestionResult,
+    RuleCreate, ClauseCreate
 )
 from backend.app.db import get_db_connection
 from backend.app.risk_rules import evaluate_risk
@@ -18,6 +19,16 @@ from backend.app.classifier import classify_clause, CATEGORIES
 
 
 app = FastAPI(title="Contract Review Assistant API")
+
+from fastapi.middleware.cors import CORSMiddleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 # Setup exception handler for 404
 @app.exception_handler(HTTPException)
@@ -349,4 +360,95 @@ def ask_question(req: QuestionRequest):
         category=category,
         review_result=review_res
     )
+
+@app.post("/rules", status_code=status.HTTP_201_CREATED, tags=["rules"])
+def create_rule(req: RuleCreate):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Generate new rule ID
+    cursor.execute("SELECT id FROM rules WHERE id LIKE 'R-%';")
+    existing_ids = [row["id"] for row in cursor.fetchall()]
+    max_num = 0
+    for id_val in existing_ids:
+        try:
+            num = int(id_val.replace("R-", ""))
+            if num > max_num:
+                max_num = num
+        except ValueError:
+            pass
+    next_id = f"R-{max_num + 1:03d}"
+    
+    cursor.execute(
+        """
+        INSERT INTO rules (id, category, rule_type, parameter_name, operator, value, risk_level, reason)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+        """,
+        (next_id, req.category, req.rule_type, req.parameter_name, req.operator, req.value, req.risk_level, req.reason)
+    )
+    conn.commit()
+    conn.close()
+    return {"message": "Rule created successfully.", "id": next_id}
+
+@app.get("/rules", tags=["rules"])
+def list_rules(category: Optional[str] = None):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    if category:
+        cursor.execute("SELECT * FROM rules WHERE category = ?;", (category,))
+    else:
+        cursor.execute("SELECT * FROM rules;")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+@app.post("/contracts/{contract_id}/clauses", response_model=Clause, status_code=status.HTTP_201_CREATED, tags=["clauses"])
+def create_or_update_clause(contract_id: str, req: ClauseCreate):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Verify contract exists
+    cursor.execute("SELECT id FROM contracts WHERE id = ?;", (contract_id,))
+    if not cursor.fetchone():
+        conn.close()
+        raise HTTPException(status_code=404, detail=f"Contract {contract_id} does not exist.")
+        
+    # Check if clause for this category already exists
+    cursor.execute("SELECT id FROM clauses WHERE contract_id = ? AND category = ?;", (contract_id, req.category))
+    existing = cursor.fetchone()
+    
+    if existing:
+        # Update existing clause
+        cursor.execute(
+            """
+            UPDATE clauses 
+            SET heading = ?, text = ?, present = 1
+            WHERE contract_id = ? AND category = ?;
+            """,
+            (req.heading, req.text, contract_id, req.category)
+        )
+        clause_id = existing["id"]
+    else:
+        # Insert new clause
+        cursor.execute(
+            """
+            INSERT INTO clauses (contract_id, category, heading, text, present)
+            VALUES (?, ?, ?, ?, 1);
+            """,
+            (contract_id, req.category, req.heading, req.text)
+        )
+        clause_id = cursor.lastrowid
+        
+    conn.commit()
+    conn.close()
+    
+    return Clause(
+        clause_id=clause_id,
+        contract_id=contract_id,
+        category=req.category,
+        heading=req.heading,
+        text=req.text,
+        present=True
+    )
+
 
